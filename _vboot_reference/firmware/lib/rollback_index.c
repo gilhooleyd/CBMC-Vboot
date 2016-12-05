@@ -482,78 +482,6 @@ uint32_t SetupTPM(int developer_mode, int disable_dev_request,
 }
 
 
-#ifdef DISABLE_ROLLBACK_TPM
-/* Dummy implementations which don't support TPM rollback protection */
-
-uint32_t RollbackS3Resume(void)
-{
-#ifndef CHROMEOS_ENVIRONMENT
-	/*
-	 * Initialize the TPM, but ignore return codes.  In ChromeOS
-	 * environment, don't even talk to the TPM.
-	 */
-	TlclLibInit();
-	TlclResume();
-#endif
-	return TPM_SUCCESS;
-}
-
-uint32_t RollbackFirmwareSetup(int is_hw_dev,
-                               int disable_dev_request,
-                               int clear_tpm_owner_request,
-                               int *is_virt_dev, uint32_t *version)
-{
-#ifndef CHROMEOS_ENVIRONMENT
-	/*
-	 * Initialize the TPM, but ignores return codes.  In ChromeOS
-	 * environment, don't even talk to the TPM.
-	 */
-	TlclLibInit();
-	TlclStartup();
-	TlclContinueSelfTest();
-#endif
-	*is_virt_dev = 0;
-	*version = 0;
-	return TPM_SUCCESS;
-}
-
-uint32_t RollbackFirmwareWrite(uint32_t version)
-{
-	return TPM_SUCCESS;
-}
-
-uint32_t RollbackFirmwareLock(void)
-{
-	return TPM_SUCCESS;
-}
-
-uint32_t RollbackKernelRead(uint32_t* version)
-{
-	*version = 0;
-	return TPM_SUCCESS;
-}
-
-uint32_t RollbackKernelWrite(uint32_t version)
-{
-	return TPM_SUCCESS;
-}
-
-uint32_t RollbackBackupRead(uint8_t *raw)
-{
-	return TPM_SUCCESS;
-}
-
-uint32_t RollbackBackupWrite(uint8_t *raw)
-{
-	return TPM_SUCCESS;
-}
-
-uint32_t RollbackKernelLock(int recovery_mode)
-{
-	return TPM_SUCCESS;
-}
-
-#else
 
 uint32_t RollbackS3Resume(void)
 {
@@ -678,5 +606,3 @@ uint32_t RollbackKernelLock(int recovery_mode)
 		kernel_locked = 1;
 	return r;
 }
-
-#endif /* DISABLE_ROLLBACK_TPM */

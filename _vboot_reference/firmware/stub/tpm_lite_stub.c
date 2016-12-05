@@ -135,6 +135,7 @@ static inline int TpmResponseSize(const uint8_t* buffer) {
 
 VbError_t VbExTpmInit(void) {
   char *no_exit = getenv("TPM_NO_EXIT");
+  VBDEBUG(("STARTED REAL INIT\n"));
   if (no_exit)
     exit_on_failure = !atoi(no_exit);
   return VbExTpmOpen();

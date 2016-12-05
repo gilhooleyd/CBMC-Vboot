@@ -145,6 +145,7 @@ static uint32_t Send(const uint8_t* command) {
 /* Exported functions. */
 
 uint32_t TlclLibInit(void) {
+    VBDEBUG(("REAL init\n"));
   return VbExTpmInit();
 }
 

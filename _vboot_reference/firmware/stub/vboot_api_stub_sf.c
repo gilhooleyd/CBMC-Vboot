@@ -22,6 +22,7 @@
 #include <sys/time.h>
 
 #include "vboot_api.h"
+#include "utility.h"
 
 #define MAX_STACK_LEVELS 10
 
@@ -112,6 +113,7 @@ void VbExFree(void *ptr)
 VbError_t VbExHashFirmwareBody(VbCommonParams *cparams,
                                uint32_t firmware_index)
 {
+    VBDEBUG(("Woops, Called Fake Hash \n"));
 	return VBERROR_SUCCESS;
 }
 

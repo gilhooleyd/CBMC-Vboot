@@ -40,6 +40,7 @@ uint32_t RollbackFirmwareSetup(int is_hw_dev,
                                int clear_tpm_owner_request,
                                int *is_virt_dev, uint32_t *version) {
   *version = 0;
+  VBDEBUG(("FAKE SETUP\n"));
   return TPM_SUCCESS;
 }
 

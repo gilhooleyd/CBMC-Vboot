@@ -131,6 +131,7 @@ RSAPublicKey *PublicKeyToRSA(const VbPublicKey *key)
 	}
 	if (!RSAProcessedKeySize(key->algorithm, &key_size) ||
 	    key_size != key->key_size) {
+		VBDEBUG(("%d %d\n", (int) key_size, (int) key->key_size));
 		VBDEBUG(("Wrong key size for algorithm\n"));
 		return NULL;
 	}

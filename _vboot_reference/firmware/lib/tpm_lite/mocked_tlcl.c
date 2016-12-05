@@ -11,6 +11,7 @@
 #include "vboot_api.h"
 
 uint32_t TlclLibInit(void) {
+    VBDEBUG(("FAKE init\n"));
   return VbExTpmInit();
 }
 
