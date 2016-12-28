@@ -276,6 +276,7 @@ int LoadFirmware(VbCommonParams *cparams, VbSelectFirmwareParams *fparams,
 		*check_result = VBSD_LF_CHECK_VALID;
 		if (-1 == good_index) {
 			/* Save the key we actually used */
+#if !defined(CBMC)
 			if (0 != VbSharedDataSetKernelKey(
 					shared, &preamble->kernel_subkey)) {
 				/*
@@ -286,6 +287,7 @@ int LoadFirmware(VbCommonParams *cparams, VbSelectFirmwareParams *fparams,
 				VBDEBUG(("Unable to save kernel subkey.\n"));
 				continue;
 			}
+#endif
 
 			/*
 			 * Save the good index, now that we're sure we can

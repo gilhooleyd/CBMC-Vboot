@@ -18,6 +18,7 @@
 #include "vboot_nvstorage.h"
 #include "vboot_struct.h"
 
+#include "utility.h"
 /* Mock data */
 static VbCommonParams cparams;
 static VbSelectFirmwareParams fparams;
@@ -64,6 +65,7 @@ static void ResetMocks(void) {
     /* Fix up offsets to preambles */
     vblock[i].key_block_size =
         (uint8_t*)(mpreamble + i) - (uint8_t*)(vblock + i);
+    VBDEBUG(("key offset %u\n", (unsigned int) vblock[i].key_block_size));
 
     mpreamble[i].header_version_minor = 1;  /* Supports preamble flags */
     mpreamble[i].firmware_version = 4;

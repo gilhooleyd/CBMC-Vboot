@@ -166,8 +166,8 @@ int main(void) {
     Memset(&fparams, '\0', sizeof(fparams));
     // read in the whole block of the virtual boot
     // (contains keyblock, preaamble, and RW FW data)
-//    fp = fopen("tests/preamble_tests/preamble_v2x/fw_8_8.vblock", "r");
-    fp = fopen("tests/custom_data/vblock/fw_8_8.vblock", "r");
+    fp = fopen("tests/preamble_tests/preamble_v2x/fw_8_8.vblock", "r");
+//    fp = fopen("tests/custom_data/vblock/fw_8_8.vblock", "r");
     if (fp == NULL) {
         perror("Failed: ");
         return 1;

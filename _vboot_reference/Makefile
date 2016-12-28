@@ -372,19 +372,19 @@ FWLIB21_SRCS = \
 
 # Support real TPM unless BIOS sets MOCK_TPM
 #ifeq (${MOCK_TPM},)
-VBINIT_SRCS += \
-	firmware/lib/rollback_index.c \
-	firmware/lib/tpm_lite/tlcl.c
-
-VBSF_SRCS += \
-	firmware/lib/tpm_bootmode.c
-#else
 #VBINIT_SRCS += \
-#	firmware/lib/mocked_rollback_index.c \
-#	firmware/lib/tpm_lite/mocked_tlcl.c
+#	firmware/lib/rollback_index.c \
+#	firmware/lib/tpm_lite/tlcl.c
 #
 #VBSF_SRCS += \
-#	firmware/lib/mocked_tpm_bootmode.c
+#	firmware/lib/tpm_bootmode.c
+#else
+VBINIT_SRCS += \
+	firmware/lib/mocked_rollback_index.c \
+	firmware/lib/tpm_lite/mocked_tlcl.c
+
+VBSF_SRCS += \
+	firmware/lib/mocked_tpm_bootmode.c
 #endif
 
 ifeq (${FIRMWARE_ARCH},)
@@ -688,6 +688,8 @@ TEST_OBJS += ${TESTLIB_OBJS}
 
 
 # And some compiled tests.
+#	tests/cbmc/test_loadfirmware\
+
 TEST_NAMES = \
 	tests/custom_test \
 	tests/cgptlib_test \
