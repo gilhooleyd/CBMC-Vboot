@@ -8,13 +8,14 @@ includedDirs = [
         "../"
         ]
 
-testFile = "test_loadfirmware.c"
+testFile = "test_selectFw.c"
 
 includedFiles = [
         # include file below to do Google's unit test assertions
 #        "test_common.c",
 
         "../../firmware/stub/utility_stub.c",
+        "../../firmware/lib/vboot_api_firmware.c",
         "../../firmware/lib/vboot_common.c",
         "../../firmware/lib/vboot_nvstorage.c",
         "../../firmware/lib/vboot_common_init.c",

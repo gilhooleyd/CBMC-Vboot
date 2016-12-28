@@ -68,6 +68,7 @@ static void ResetMocks(void) {
       vblock[i].data_key.key_version = nondet_int();
 
       mpreamble[i].firmware_version = nondet_int();
+      mpreamble[i].flags = nondet_int();
 
       // header_version_major is the return value for KeyBlockVerify
       vblock[i].header_version_major = nondet_int();
@@ -85,12 +86,9 @@ static void ResetMocks(void) {
 #endif
 
     /* Fix up offsets to preambles */
-    // vblock[i].key_block_size =
-    //     (uint8_t*)(mpreamble + i) - (uint8_t*)(vblock + i);
+     vblock[i].key_block_size =
+         (uint8_t*)(mpreamble + i) - (uint8_t*)(vblock + i);
     
-    // CBMC doesn't like pointer arithmatic so we will be using the actual pointer
-
-
     mpreamble[i].header_version_minor = 1;  /* Supports preamble flags */
 
     /* Point kernel subkey to some data following the key header */
@@ -144,29 +142,7 @@ static void ResetMocks(void) {
 static VbError_t VbGbbReadKey(VbCommonParams *cparams, uint32_t offset,
 			      VbPublicKey **keyp)
 {
-	VbPublicKey *hdr, *key;
-//	VbError_t ret;
-	uint32_t size;
-
-//	ret = VbRegionReadData(cparams, VB_REGION_GBB, offset,
-//			       sizeof(VbPublicKey), &hdr);
-//	if (ret)
-//		return ret;
-    hdr = (VbPublicKey *) (cparams->gbb_data + offset);
-
-	/* Deal with a zero-size key (used in testing) */
-	size = hdr->key_offset + hdr->key_size;
-	if (size < sizeof(hdr))
-		size = sizeof(hdr);
-//	key = VbExMalloc(size);
-//	ret = VbRegionReadData(cparams, VB_REGION_GBB, offset, size, key);
-//	if (ret) {
-//		VbExFree(key);
-//		return ret;
-//	}
-    key = (VbPublicKey *) (cparams->gbb_data + offset);
-
-	*keyp = key;
+    *keyp = (VbPublicKey *) (cparams->gbb_data + offset);
 	return VBERROR_SUCCESS;
 }
 
@@ -180,7 +156,6 @@ VbError_t VbGbbReadRecoveryKey(VbCommonParams *cparams, VbPublicKey **keyp)
 	return VbGbbReadKey(cparams, cparams->gbb->recovery_key_offset, keyp);
 }
 
-int verifyReturn = 0;
 int KeyBlockVerify(const VbKeyBlockHeader* block, uint64_t size,
                    const VbPublicKey *key, int hash_only) {
 
@@ -194,11 +169,7 @@ int KeyBlockVerify(const VbKeyBlockHeader* block, uint64_t size,
               "  Verify with root key");
   TEST_NEQ(block==vblock || block==vblock+1, 0, "  Verify a valid key block");
   
-  __CPROVER_assert(block == vblock || block==vblock+1,
-          "Oh shit");
-
   /* Mock uses header_version_major to hold return value */
-  verifyReturn = block->header_version_major;
   return block->header_version_major;
 }
 
@@ -208,12 +179,9 @@ int VerifyFirmwarePreamble(const VbFirmwarePreambleHeader* preamble,
     uint32_t preamble2 = mpreamble;
     
   TEST_PTR_EQ(key, &data_key, "  Verify preamble data key");
-// TODO: wonky test, see how it works in other version
-//  TEST_NEQ(preamble1==preamble2 || preamble1==preamble2+1, 0,
-//           "  Verify a valid preamble");
-
-  __CPROVER_assert(preamble1==preamble2 || preamble1==preamble2+1,
+  TEST_NEQ(preamble1==preamble2 || preamble1==preamble2+1, 0,
            "  Verify a valid preamble");
+
   /* Mock uses header_version_major to hold return value */
   return preamble->header_version_major;
 }
@@ -273,9 +241,9 @@ VbError_t VbExHashFirmwareBody(VbCommonParams* cparams,
 
 int VerifyDigest(const uint8_t* digest, const VbSignature *sig,
                  const RSAPublicKey* key) {
-//  TEST_PTR_EQ(digest, digest_returned, "Verifying expected digest");
-//  TEST_PTR_EQ(key, &data_key, "Verifying using data key");
-//  TEST_PTR_EQ(sig, &mpreamble[hash_fw_index].body_signature, "Verifying sig");
+  TEST_PTR_EQ(digest, digest_returned, "Verifying expected digest");
+  TEST_PTR_EQ(key, &data_key, "Verifying using data key");
+  TEST_PTR_EQ(sig, &mpreamble[hash_fw_index].body_signature, "Verifying sig");
 
   /* Mocked function uses sig size as return value for verifying digest */
   return sig->sig_size;
@@ -339,6 +307,9 @@ int main(void) {
     int ret;
     uint32_t tpm_fw_version;
 
+//    __CPROVER_assume (mpreamble == 0xffff0000);
+//    __CPROVER_assume (vblock    == 0xfffff000);
+
     ResetMocks();
     tpm_fw_version = shared->fw_version_tpm;
 
@@ -346,7 +317,7 @@ int main(void) {
 
     if (ret == 0) {
         checkRollback(tpm_fw_version);
-        checkIncorrectHash();
+//        checkIncorrectHash();
     }
 
     return 0;
