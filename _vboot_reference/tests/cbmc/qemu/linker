@@ -1,0 +1,21 @@
+SECTIONS
+{
+    . = 1M;
+    _start = .;
+        /* Start .text (kernel code) SECTION */
+    __text_start = .;
+    .text BLOCK(4K) : ALIGN(4K)
+    {
+        /* Put multiboot header first */
+        *(.multiboot)
+
+            /* Then include the rest of the .text section */
+            *(.text)
+    }
+    __text_end = .;
+
+    .data BLOCK(4K):ALIGN(4K) { *(.data) } 
+    .rodata BLOCK(4K):ALIGN(4K) { *(.rodata) } 
+
+    .bss  BLOCK(4K):ALIGN(4K){ *(.bss) }
+}
