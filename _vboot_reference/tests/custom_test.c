@@ -10,6 +10,13 @@
 #include "vboot_nvstorage.h"
 #include "vboot_struct.h"
 
+#ifdef I_BIN
+#include "cbmc/qemu/tty.h"
+extern char image_body;
+extern char gbb_bin;
+extern char vblock_bin;
+#endif
+
 /* Mock data */
 static VbCommonParams cparams;
 static VbInitParams iparams;
@@ -112,6 +119,7 @@ VbError_t VbExHashFirmwareBody(VbCommonParams *cparams, uint32_t fw_index) {
     FILE *fp;
     int body_size;
     void *fw_body;
+#ifndef I_BIN
     fp = fopen("tests/preamble_tests/data/FWDATA", "r");
     if (fp == NULL) {
         perror("Failed: ");
@@ -119,15 +127,24 @@ VbError_t VbExHashFirmwareBody(VbCommonParams *cparams, uint32_t fw_index) {
     }
     fseek(fp, 0L, SEEK_END);
     body_size = ftell(fp);
+    printf("Image size: %d", body_size);
     rewind(fp);
     fw_body = malloc(body_size); 
     fread(fw_body, sizeof(char *), body_size, fp);
     fclose(fp);
+#else
+    fw_body = &image_body;
+    body_size = 32768;
+#endif
     VbUpdateFirmwareBodyHash(cparams, fw_body, body_size);
     return 0;
 }
 
+#ifndef I_BIN
 int main(void) {
+#else
+int kernel_main(void) {
+#endif
     uint8_t ret_val;
     VbSelectFirmwareParams fparams;
     FILE *fp;
@@ -135,6 +152,7 @@ int main(void) {
     ResetInitMocks();
 
     // read in gbb
+#ifndef I_BIN
     fp = fopen("tests/preamble_tests/gbb.blob", "r");
     if (fp == NULL) {
         perror("Failed: ");
@@ -148,6 +166,11 @@ int main(void) {
     gbb_buff = malloc(fp_size); 
     fread(gbb_buff, sizeof(char *), fp_size, fp);
     fclose(fp);
+#else
+	terminal_init();
+    gbb_buff = &gbb_bin;
+    fp_size = 262144;
+#endif
 
     // set the gbb information
     cparams.gbb_data = gbb_buff;
@@ -162,6 +185,7 @@ int main(void) {
     // (this will also initiliaze the tpm)
     ret_val = VbInit(&cparams, &iparams);
 
+#ifndef I_BIN
     // Do setup for the next stage
     Memset(&fparams, '\0', sizeof(fparams));
     // read in the whole block of the virtual boot
@@ -178,6 +202,10 @@ int main(void) {
     fw_buff = malloc(fw_size); 
     fread(fw_buff, sizeof(char *), fw_size, fp);
     fclose(fp);
+#else
+    fw_buff = &vblock_bin;
+    vlength = 3116;
+#endif
 
     VBDEBUG(("FW SIZE: %d\n", fw_size));
 
@@ -193,7 +221,12 @@ int main(void) {
     // afterwards we need code to do the decompression of the 
     // image, and also to copy the image to a designated memory
 
-    TEST_EQ(ret_val, ret_val, "Yeah PASSED!");
+//    TEST_EQ(ret_val, ret_val, "Yeah PASSED!");
+#ifndef I_BIN
     printf("%d\n", ret_val);
+#else
+	terminal_writestring("Return Value ");
+	printNum(ret_val);
+#endif
     return 0;
 }
