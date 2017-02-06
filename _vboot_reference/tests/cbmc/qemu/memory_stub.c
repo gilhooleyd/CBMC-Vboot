@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "tty.h"
 
 #define START_ADDR 0x00007E00
 
@@ -10,7 +11,11 @@ void *VbExMalloc(size_t size) {
     uint32_t old_off = offset;
     offset += size;
 
-    return (void *) (START_ADDR + offset);
+//    terminal_writestring("Malloc address starts ");
+//    printHex(START_ADDR + old_off);
+//    terminal_writestring("\n");
+
+    return (void *) (START_ADDR + old_off);
 }
 
 void VbExFree(void * p) {

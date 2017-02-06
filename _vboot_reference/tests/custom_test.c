@@ -134,6 +134,7 @@ VbError_t VbExHashFirmwareBody(VbCommonParams *cparams, uint32_t fw_index) {
     fclose(fp);
 #else
     fw_body = &image_body;
+//    *(&image_body + 4) = 0xFF;
     body_size = 32768;
 #endif
     VbUpdateFirmwareBodyHash(cparams, fw_body, body_size);
