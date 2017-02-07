@@ -142,18 +142,19 @@ CFLAGS ?= -march=armv5 \
 	${COMMON_FLAGS}
 else ifeq (${FIRMWARE_ARCH}, x86)
 # FIRMWARE_ARCH not defined; assuming local compile.
-CC ?= gcc
-CFLAGS += -Wall -ffreestanding -m32 ${WERROR} ${DEBUG_FLAGS}
-# CC ?= i686-pc-linux-gnu-gcc
-# # Drop -march=i386 to permit use of SSE instructions
-# CFLAGS ?= \
-# 	-ffunction-sections -fvisibility=hidden -fno-strict-aliasing \
-# 	-fomit-frame-pointer -fno-toplevel-reorder -fno-dwarf2-cfi-asm \
-# 	-mpreferred-stack-boundary=2 \
-# 	${COMMON_FLAGS}
+CC ?= i686-pc-linux-gnu-gcc
+# Drop -march=i386 to permit use of SSE instructions
+CFLAGS ?= \
+		  -ffunction-sections -fvisibility=hidden -fno-strict-aliasing \
+		  -fomit-frame-pointer -fno-toplevel-reorder -fno-dwarf2-cfi-asm \
+		  -mpreferred-stack-boundary=2 \
+		  ${COMMON_FLAGS}
 else ifeq (${FIRMWARE_ARCH}, x86_64)
 CFLAGS ?= ${COMMON_FLAGS} \
 	-fvisibility=hidden -fno-strict-aliasing -fomit-frame-pointer
+else ifeq (${FIRMWARE_ARCH}, x86_qemu)
+CC ?= gcc
+CFLAGS += -Wall -ffreestanding -m32 ${WERROR} ${DEBUG_FLAGS}
 else
 # FIRMWARE_ARCH not defined; assuming local compile.
 CC ?= gcc
