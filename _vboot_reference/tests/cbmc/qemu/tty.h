@@ -21,7 +21,7 @@ void terminal_writestring(const char* data);
 
 void printHex(int num);
 void printNum(int num);
- 
+
 
 #endif
 
