@@ -152,7 +152,7 @@ CFLAGS ?= \
 else ifeq (${FIRMWARE_ARCH}, x86_64)
 CFLAGS ?= ${COMMON_FLAGS} \
 	-fvisibility=hidden -fno-strict-aliasing -fomit-frame-pointer
-else ifeq (${FIRMWARE_ARCH}, x86_qemu)
+else ifeq (${FIRMWARE_ARCH}, X86_QEMU)
 CC ?= gcc
 CFLAGS += -Wall -ffreestanding -m32 ${WERROR} ${DEBUG_FLAGS}
 else
@@ -389,9 +389,7 @@ VBINIT_SRCS += \
 	firmware/lib/tpm_lite/mocked_tlcl.c
 
 VBSF_SRCS += \
-	firmware/lib/tpm_bootmode.c
-#VBSF_SRCS += \
-#	firmware/lib/mocked_tpm_bootmode.c
+	firmware/lib/mocked_tpm_bootmode.c
 endif
 
 ifeq (${FIRMWARE_ARCH},)
