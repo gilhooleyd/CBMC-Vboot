@@ -1,9 +1,12 @@
 kernel.elf: custom.o boot.o print_stub.o memory_stub.o files.o
 	ld -melf_i386 -T linker custom.o boot.o print_stub.o memory_stub.o files.o vboot_fw.a -o kernel.elf
 
-test.elf: test.o boot.o print_stub.o memory_stub.o files.o tpm.o
-	ld -L./ -melf_i386 -T linker test.o boot.o print_stub.o tpm.o memory_stub.o files.o -lvboot -o test.elf
+test.elf: test.o boot.o print_stub.o memory_stub.o  tpm.o
+	ld -L./ -melf_i386 -T linker test.o boot.o print_stub.o tpm.o memory_stub.o  -lvboot -o test.elf
 #	ld -melf_i386 -T linker test.o boot.o print_stub.o -o test.elf
+
+pcr.elf: tpm-pcr.o print_stub.o boot.o memory_stub.o tpm.o
+	ld -L./ -melf_i386 -T linker tpm-pcr.o boot.o print_stub.o tpm.o memory_stub.o  -lvboot -o test.elf
 
 custom.o: ../../custom_test.c
 	gcc -g -c -nostdlib -DI_BIN -ffreestanding -m32 \

@@ -19,169 +19,196 @@
 #define STS_DATA_EXPECT                 0x08 /* (R) */
 #define STS_GO                          0x20 /* (W) */
 
+#define ADDR FED40000
 int locality = 0;
 
+
 uint8_t read8(uint32_t addr) {
-   uint8_t *ptr = (uint8_t *) addr;
+   uint8_t *ptr = (uint8_t *) (addr + 0xFED40000);
    return *ptr;
 }
 
-void write8(uint32_t addr, uint8_t data) {
-   uint8_t *ptr = (uint8_t *) addr;
+void write8(uint8_t data, uint32_t addr) {
+   uint8_t *ptr = (uint8_t *) (addr + 0xFED40000);
    *ptr = data;
 }
 
 uint32_t read32(uint32_t addr) {
-   uint32_t *ptr = (uint32_t *) addr;
+   uint32_t *ptr = (uint32_t *) (addr + 0xFED40000);
    return *ptr;
 }
 
-void write32(uint32_t addr, uint32_t data) {
-    uint32_t * ptr = (uint32_t *) addr;
+void write32(uint32_t data, uint32_t addr) {
+    uint32_t * ptr = (uint32_t *) (addr + 0xFED40000);
     *ptr = data;
 }
 
- int request_locality(int l)
+int request_locality(int l)
  {
      write8(ACCESS_RELINQUISH_LOCALITY, ACCESS(locality));
  
      write8(ACCESS_REQUEST_USE, ACCESS(l));
      /* wait for locality to be granted */
-     if (read8(ACCESS(l) & ACCESS_ACTIVE_LOCALITY))
-         return locality = l;
+     
+     while(!read8(ACCESS(l) & ACCESS_ACTIVE_LOCALITY)) {}
+
+     return locality = l;
  
      return -1;
  }
-// int send(unsigned char *buf, int len)
-// {
-//     int status, burstcnt = 0;
-//     int count = 0;
-// 
-//     if (request_locality(locality) == -1)
-//         return -1;
-//     write8(STS_COMMAND_READY, STS(locality));
-// 
-//     while (count < len - 1) {
-//         burstcnt = read8(STS(locality) + 1);
-//         burstcnt += read8(STS(locality) + 2) << 8;
-// 
-//         if (burstcnt == 0){
-//             delay(); /* wait for FIFO to drain */
-//         } else {
-//             for (; burstcnt > 0 && count < len - 1;
-//                     burstcnt—) {
-//                 write8(buf[count],
-//                         DATA_FIFO(locality));
-//                 count++;
-//             }
-// 
-//             /* check for overflow */
-//             for (status = 0; (status & STS_VALID)
-//                     == 0; )
-//                 status = read8(STS(locality));
-//             if ((status & STS_DATA_EXPECT) == 0)
-//                 return -1;
-//         }
-//     }
-// 
-//     /* write last byte */
-//     write8(buf[count], DATA_FIFO(locality));
-// 
-//     /* make sure it stuck */
-//     for (status = 0; (status & STS_VALID) == 0; )
-//         status = read8(STS(locality));
-//     if ((status & STS_DATA_EXPECT) != 0)
-//         return -1;
-// 
-//     /* go and do it */
-//     write8(STS_GO, STS(locality));
-// 
-//     return len;
-// }
-// 
-// int recv_data(unsigned char *buf, int count)
-// {
-// 
-//     int size = 0, burstcnt = 0, status;
-// 
-//     status = read8(STS(locality));
-//     while ((status & (STS_DATA_AVAIL | STS_VALID))
-//             == (STS_DATA_AVAIL | STS_VALID)
-//             && size < count) {
-//         if (burstcnt == 0){
-//             burstcnt = read8(STS(locality) + 1);
-//             burstcnt += read8(STS(locality) + 2) << 8;
-//         }
-// 
-//         if (burstcnt == 0) {
-//             delay(); /* wait for the FIFO to fill */
-//         } else {
-//             for (; burstcnt > 0 && size < count;
-//                     burstcnt—) {
-//                 buf[size] = read8(DATA_FIFO
-//                         (locality));
-//                 size++;
-//             }
-//         }
-//         status = read8(STS(locality));
-//     }
-// 
-//     return size;
-// }
-// 
-// int recv(unsigned char *buf, int count)
-// {
-//     int expected, status;
-//     int size = 0;
-// 
-//     if (count < 6)
-//         return 0;
-// 
-//     /* ensure that there is data available */
-//     status = read8(STS(locality));
-//     if ((status & (STS_DATA_AVAIL | STS_VALID))
-//             != (STS_DATA_AVAIL | STS_VALID))
-//         return 0;
-// 
-//     /* read first 6 bytes, including tag and paramsize */
-//     if ((size = recv_data(buf, 6)) < 6)
-//         return -1;
+void delay() {
+   terminal_writestring("Have to delay\n"); 
+}
+
+int send(unsigned char *buf, int len)
+{
+    int status, burstcnt = 0;
+    int count = 0;
+
+    if (request_locality(locality) == -1)
+        return -1;
+    write8(STS_COMMAND_READY, STS(locality));
+
+    while (count < len - 1) {
+        burstcnt = read8(STS(locality) + 1);
+        burstcnt += read8(STS(locality) + 2) << 8;
+
+        if (burstcnt == 0){
+            delay(); /* wait for FIFO to drain */
+        } else {
+            for (; burstcnt > 0 && count < len - 1; burstcnt--) {
+                write8(buf[count],
+                        DATA_FIFO(locality));
+                count++;
+            }
+
+            /* check for overflow */
+            for (status = 0; (status & STS_VALID)
+                    == 0; )
+                status = read8(STS(locality));
+            if ((status & STS_DATA_EXPECT) == 0)
+                return -1;
+        }
+    }
+
+    /* write last byte */
+    write8(buf[count], DATA_FIFO(locality));
+
+    /* make sure it stuck */
+    for (status = 0; (status & STS_VALID) == 0; )
+        status = read8(STS(locality));
+    if ((status & STS_DATA_EXPECT) != 0)
+        return -1;
+
+    /* go and do it */
+    write8(STS_GO, STS(locality));
+
+    return len;
+}
+ 
+ int recv_data(unsigned char *buf, int count)
+ {
+ 
+     int size = 0, burstcnt = 0, status;
+ 
+     status = read8(STS(locality));
+     while ((status & (STS_DATA_AVAIL | STS_VALID))
+             == (STS_DATA_AVAIL | STS_VALID)
+             && size < count) {
+         if (burstcnt == 0){
+             burstcnt = read8(STS(locality) + 1);
+             burstcnt += read8(STS(locality) + 2) << 8;
+         }
+ 
+         if (burstcnt == 0) {
+             delay(); /* wait for the FIFO to fill */
+         } else {
+             for (; burstcnt > 0 && size < count; burstcnt--) {
+                 buf[size] = read8(DATA_FIFO
+                         (locality));
+                 size++;
+             }
+         }
+         status = read8(STS(locality));
+     }
+ 
+     return size;
+ }
+ 
+ int recv(unsigned char *buf, int count)
+ {
+     int expected, status;
+     int size = 0;
+ 
+     if (count < 6)
+         return 0;
+ 
+     /* ensure that there is data available */
+     status = read8(STS(locality));
+     if ((status & (STS_DATA_AVAIL | STS_VALID))
+             != (STS_DATA_AVAIL | STS_VALID))
+         return 0;
+ 
+     /* read first 6 bytes, including tag and paramsize */
+     if ((size = recv_data(buf, 6)) < 6)
+         return -1;
+     // TODO: This is something with Endianness
 //     expected = be32_to_cpu(*(unsigned *) (buf + 2));
-// 
-//     if (expected > count)
-//         return -1;
-// 
-//     /* read all data, except last byte */
-//     if ((size += recv_data(&buf[6], expected - 6 - 1))
-//             < expected - 1)
-//         return -1;
-// 
-//     /* check for receive underflow */
-//     status = read8(STS(locality));
-//     if ((status & (STS_DATA_AVAIL | STS_VALID))
-//             != (STS_DATA_AVAIL | STS_VALID))
-//         return -1;
-// 
-//     /* read last byte */
-//     if ((size += recv_data(&buf[size], 1)) != expected)
-//         return -1;
-//     /* make sure we read everything */
-//     status = read8(STS(locality));
-//     if ((status & (STS_DATA_AVAIL | STS_VALID))
-//             == (STS_DATA_AVAIL | STS_VALID)) {
-//         return -1;
-//     }
-// 
-//     write8(STS_COMMAND_READY, STS(locality));
-// 
-//     return expected;
-// }
+    expected = (*(unsigned *) (buf + 5));
+ 
+     if (expected > count)
+         return -1;
+ 
+     /* read all data, except last byte */
+     if ((size += recv_data(&buf[6], expected - 6 - 1))
+             < expected - 1) {
+         terminal_writestring("Reading all data failed\n");
+         return -1;
+     }
+ 
+     /* check for receive underflow */
+     status = read8(STS(locality));
+     if ((status & (STS_DATA_AVAIL | STS_VALID))
+             != (STS_DATA_AVAIL | STS_VALID)) {
+         terminal_writestring("Read underflow failed\n");
+         return -1;
+     }
+ 
+     /* read last byte */
+     if ((size += recv_data(&buf[size], 1)) != expected) {
+         terminal_writestring("Last byte failed\n");
+         return -1;
+     }
+     /* make sure we read everything */
+     status = read8(STS(locality));
+     if ((status & (STS_DATA_AVAIL | STS_VALID))
+             == (STS_DATA_AVAIL | STS_VALID)) {
+         terminal_writestring("Everything failed\n");
+         return -1;
+     }
+ 
+     write8(STS_COMMAND_READY, STS(locality));
+ 
+     return expected;
+ }
 
 VbError_t VbExTpmSendReceive(const uint8_t* request, uint32_t request_length,
                              uint8_t* response, uint32_t* response_length) {
 
+    int ret;
+    ret = send(request, request_length);
+    if (ret != request_length) {
+        terminal_writestring("Send Failed :(\n");
+        return -1;
+    }
+    ret = recv(response, *response_length);
+    if (ret != *response_length) {
+        terminal_writestring("Recv Failed :(\n");
+        return -1;
+    }
     return 0;
 }
+
 
 VbError_t VbExTpmInit(void) {
     unsigned vendor;
