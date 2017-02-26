@@ -152,9 +152,9 @@ int send(unsigned char *buf, int len)
      /* read first 6 bytes, including tag and paramsize */
      if ((size = recv_data(buf, 6)) < 6)
          return -1;
-     // TODO: This is something with Endianness
-//     expected = be32_to_cpu(*(unsigned *) (buf + 2));
-    expected = (*(unsigned *) (buf + 5));
+//  TODO: This is something with Endianness
+//  expected = be32_to_cpu(*(unsigned *) (buf + 2));
+    expected = (*(buf + 5));
  
      if (expected > count)
          return -1;
@@ -189,7 +189,7 @@ int send(unsigned char *buf, int len)
  
      write8(STS_COMMAND_READY, STS(locality));
  
-     return expected;
+     return 0;
  }
 
 VbError_t VbExTpmSendReceive(const uint8_t* request, uint32_t request_length,
@@ -202,7 +202,12 @@ VbError_t VbExTpmSendReceive(const uint8_t* request, uint32_t request_length,
         return -1;
     }
     ret = recv(response, *response_length);
-    if (ret != *response_length) {
+    terminal_writestring("Recv  Resp ");
+    printHex(*response_length);
+    terminal_writestring(" Ret ");
+    printHex(ret);
+    terminal_writestring("\n ");
+    if (ret != 0) {
         terminal_writestring("Recv Failed :(\n");
         return -1;
     }

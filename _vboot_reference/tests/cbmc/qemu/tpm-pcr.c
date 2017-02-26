@@ -28,8 +28,14 @@ int kernel_main(void) {
     terminal_writestring("Read \n");
 
     for (i = 0; i < TPM_PCR_DIGEST; i++) {
-        if(!(ret_digest[i] == out_digest[i]))
-            terminal_writestring("X");
+        if(!(ret_digest[i] == out_digest[i])) {
+            printHex(i);
+            terminal_writestring(" ");
+            printHex(ret_digest[i]);
+            terminal_writestring(" ");
+            printHex(out_digest[i]);
+            terminal_writestring("\n");
+        }
     }
 
     while(1) {};
