@@ -24,54 +24,98 @@ int locality = 0;
 
 
 uint8_t read8(uint32_t addr) {
-   uint8_t *ptr = (uint8_t *) (addr + 0xFED40000);
+   uint8_t volatile *ptr = (uint8_t *) (addr + 0xFED40000);
    return *ptr;
 }
 
 void write8(uint8_t data, uint32_t addr) {
-   uint8_t *ptr = (uint8_t *) (addr + 0xFED40000);
+   uint8_t volatile *ptr = (uint8_t *) (addr + 0xFED40000);
    *ptr = data;
 }
 
 uint32_t read32(uint32_t addr) {
-   uint32_t *ptr = (uint32_t *) (addr + 0xFED40000);
+   uint32_t volatile *ptr = (uint32_t *) (addr + 0xFED40000);
    return *ptr;
 }
 
 void write32(uint32_t data, uint32_t addr) {
-    uint32_t * ptr = (uint32_t *) (addr + 0xFED40000);
+    uint32_t volatile * ptr = (uint32_t *) (addr + 0xFED40000);
     *ptr = data;
 }
 
-int request_locality(int l)
- {
+/*
+ * Sees if there is data available at a particular locality.
+ * Returns 1 if data is available, 0 otherwise.
+ * Valid function for localities 0-5
+ */
+int is_data_aval(int locality) {
+    int status;
+
+    // Input error checking 
+    if (locality < 0 || locality > 5) {
+        terminal_writestring("Error: Wrong locality\n");
+        return -1;
+    }
+
+    // Read and parse status data
+    status = read8(STS(locality));
+    if ((status & (STS_DATA_AVAIL | STS_VALID))
+            == (STS_DATA_AVAIL | STS_VALID))
+        return 1;
+    else
+        return 0;
+}
+
+int readBurstCount() {
+    int burstcnt;
+    burstcnt = read8(STS(locality) + 1);
+    burstcnt += read8(STS(locality) + 2) << 8;
+    return burstcnt;
+}
+
+/*
+ * Request a given locality (0-5).
+ * This function blocks until locality is granted
+ */
+int request_locality(int l) {
+     // relinquish any locality we might have had
      write8(ACCESS_RELINQUISH_LOCALITY, ACCESS(locality));
- 
+
+     // request the given locality
      write8(ACCESS_REQUEST_USE, ACCESS(l));
-     /* wait for locality to be granted */
-     
+
+     // wait for locality to be granted 
      while(!read8(ACCESS(l) & ACCESS_ACTIVE_LOCALITY)) {}
 
+     // set our new global variable and return success
      return locality = l;
- 
-     return -1;
- }
+}
+
+// TODO: actually implement a working live-spin delay
 void delay() {
    terminal_writestring("Have to delay\n"); 
 }
 
-int send(unsigned char *buf, int len)
+/*
+ * Sends len number of bytes over to the TPM.
+ * Returns the number of bytes it sent succcessfully
+ */
+uint32_t send(const unsigned char *buf, uint32_t len)
 {
     int status, burstcnt = 0;
-    int count = 0;
+    uint32_t count = 0;
 
+    // request locality
     if (request_locality(locality) == -1)
         return -1;
+
+    // tell the TPM that we will be writing a command now
     write8(STS_COMMAND_READY, STS(locality));
 
+    // loop to write command
     while (count < len - 1) {
-        burstcnt = read8(STS(locality) + 1);
-        burstcnt += read8(STS(locality) + 2) << 8;
+        // get the burst count
+        burstcnt = readBurstCount();
 
         if (burstcnt == 0){
             delay(); /* wait for FIFO to drain */
@@ -82,131 +126,157 @@ int send(unsigned char *buf, int len)
                 count++;
             }
 
-            /* check for overflow */
-            for (status = 0; (status & STS_VALID)
-                    == 0; )
-                status = read8(STS(locality));
-            if ((status & STS_DATA_EXPECT) == 0)
+            // wait while we are not in a valid state (overflow)
+            while ( ( (status = read8(STS(locality)))
+                        & STS_VALID) == 0) {}
+
+            // break if the TPM is not expecting more data
+            if ((status & STS_DATA_EXPECT) == 0) {
+                terminal_writestring("Not expecting more data\n");
                 return -1;
+            }
         }
     }
 
     /* write last byte */
     write8(buf[count], DATA_FIFO(locality));
 
-    /* make sure it stuck */
-    for (status = 0; (status & STS_VALID) == 0; )
-        status = read8(STS(locality));
-    if ((status & STS_DATA_EXPECT) != 0)
+    // wait until valid state
+    while ( ( (status = read8(STS(locality)))
+                & STS_VALID) == 0) {}
+    // check that no more data is expected
+    if ((status & STS_DATA_EXPECT) != 0) {
+        terminal_writestring("Expecting too much data\n");
         return -1;
+    }
 
-    /* go and do it */
+    // Tell the TPM to execute the command
     write8(STS_GO, STS(locality));
 
     return len;
 }
  
- int recv_data(unsigned char *buf, int count)
- {
+/*
+ * Receive helper function
+ * It will copy received data into buf.
+ * It *attempts* to read count bytes but it
+ * will return early if the TPM has no data
+ * Returns: number of bytes received
+ */
+int recv_helper(unsigned char *buf, int count)
+{
  
-     int size = 0, burstcnt = 0, status;
+     int size = 0, burstcnt = 0; 
  
-     status = read8(STS(locality));
-     while ((status & (STS_DATA_AVAIL | STS_VALID))
-             == (STS_DATA_AVAIL | STS_VALID)
+     while (is_data_aval(locality)
              && size < count) {
+         // Get the burst count (amount we can read at once)
          if (burstcnt == 0){
-             burstcnt = read8(STS(locality) + 1);
+             burstcnt =  read8(STS(locality) + 1);
              burstcnt += read8(STS(locality) + 2) << 8;
          }
  
+         // if burst count is zero then there is no data to read
          if (burstcnt == 0) {
-             delay(); /* wait for the FIFO to fill */
-         } else {
+             delay(); 
+         }
+         // otherwise read the data
+         else {
              for (; burstcnt > 0 && size < count; burstcnt--) {
-                 buf[size] = read8(DATA_FIFO
-                         (locality));
+                 buf[size] = read8(DATA_FIFO(locality));
                  size++;
              }
          }
-         status = read8(STS(locality));
      }
- 
      return size;
  }
  
- int recv(unsigned char *buf, int count)
+
+/*
+ * Recieve takes a buffer of size count.
+ * It receives one command return from the TPM,
+ * as long as command_size < count
+ */
+int recv(unsigned char *buf, int count)
  {
-     int expected, status;
+     int command_size;
      int size = 0;
  
      if (count < 6)
          return 0;
  
-     /* ensure that there is data available */
-     status = read8(STS(locality));
-     if ((status & (STS_DATA_AVAIL | STS_VALID))
-             != (STS_DATA_AVAIL | STS_VALID))
-         return 0;
+     // Check that data is available
+     if (!is_data_aval(locality)) {
+         terminal_writestring("No data aval at beginning\n");
+         return -2;
+     }
  
-     /* read first 6 bytes, including tag and paramsize */
-     if ((size = recv_data(buf, 6)) < 6)
+     // Read first 6 bytes
+     // (All commands are larger than 6 bytes and
+     //   these bytes include the command size 
+     //   and the tpm tag)
+     if ((size = recv_helper(buf, 6)) < 6) {
+         terminal_writestring("First 6 bytes Fail\n");
          return -1;
-//  TODO: This is something with Endianness
-//  expected = be32_to_cpu(*(unsigned *) (buf + 2));
-    expected = (*(buf + 5));
- 
-     if (expected > count)
+     }
+
+     // Get the command size
+     command_size = (*(buf + 5));
+     if (command_size > count) {
+         terminal_writestring("Command Size too large \n");
          return -1;
+     }
  
      /* read all data, except last byte */
-     if ((size += recv_data(&buf[6], expected - 6 - 1))
-             < expected - 1) {
+     if ((size += recv_helper(&buf[6], command_size - 6 - 1))
+             < command_size - 1) {
          terminal_writestring("Reading all data failed\n");
          return -1;
      }
  
      /* check for receive underflow */
-     status = read8(STS(locality));
-     if ((status & (STS_DATA_AVAIL | STS_VALID))
-             != (STS_DATA_AVAIL | STS_VALID)) {
-         terminal_writestring("Read underflow failed\n");
+     if (!is_data_aval(locality)){ 
+         terminal_writestring("Underflow\n");
          return -1;
      }
- 
+
      /* read last byte */
-     if ((size += recv_data(&buf[size], 1)) != expected) {
+     if ((size += recv_helper(&buf[size], 1)) != command_size) {
          terminal_writestring("Last byte failed\n");
          return -1;
      }
-     /* make sure we read everything */
-     status = read8(STS(locality));
-     if ((status & (STS_DATA_AVAIL | STS_VALID))
-             == (STS_DATA_AVAIL | STS_VALID)) {
+
+     // Make sure no data is left
+     if (is_data_aval(locality)) {
          terminal_writestring("Everything failed\n");
          return -1;
      }
  
+     // TODO: what does this do?
      write8(STS_COMMAND_READY, STS(locality));
  
      return 0;
  }
 
+/*
+ * Sends and recieves data from the TPM
+ * Request is a buffer of request_length that sends all bytes to the TPM
+ * Response is a buffer of reponse_length that receives AT MOST those
+ * bytes (resonse_length is often greater than bytes recieved)
+ */
 VbError_t VbExTpmSendReceive(const uint8_t* request, uint32_t request_length,
                              uint8_t* response, uint32_t* response_length) {
 
-    int ret;
+    uint32_t ret;
+    // send the request to the TPM, check that all bytes send 
     ret = send(request, request_length);
     if (ret != request_length) {
         terminal_writestring("Send Failed :(\n");
         return -1;
     }
+
+    // get a response from the TPM, check that recv passed
     ret = recv(response, *response_length);
-    terminal_writestring("Recv  Resp ");
-    printHex(*response_length);
-    terminal_writestring(" Ret ");
-    printHex(ret);
-    terminal_writestring("\n ");
     if (ret != 0) {
         terminal_writestring("Recv Failed :(\n");
         return -1;
@@ -215,15 +285,25 @@ VbError_t VbExTpmSendReceive(const uint8_t* request, uint32_t request_length,
 }
 
 
+/*
+ * This function initializes the TPM.
+ * This is software initialization which requires that each
+ * locality is relinquished.
+ */
 VbError_t VbExTpmInit(void) {
     unsigned vendor;
     int i;
 
+    // relinquish each of the 5 localities
     for (i = 0 ; i < 5 ; i++)
         write8(ACCESS_RELINQUISH_LOCALITY, ACCESS(i));
+
+    // request locality 0, the default and legacy
     if (request_locality(0) < 0)
         return 0;
 
+    // Read the Vendor ID
+    // TODO: this is the wrong ID for the TPM driver
     vendor = read32(DID_VID(0));
     if ((vendor & 0xFFFF) == 0xFFFF)
         return 0;
