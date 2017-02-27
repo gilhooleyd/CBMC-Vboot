@@ -5,8 +5,8 @@ test.elf: test.o boot.o print_stub.o memory_stub.o  tpm.o
 	ld -L./ -melf_i386 -T linker test.o boot.o print_stub.o tpm.o memory_stub.o  -lvboot -o test.elf
 #	ld -melf_i386 -T linker test.o boot.o print_stub.o -o test.elf
 
-pcr.elf: tpm-pcr.o print_stub.o boot.o memory_stub.o tpm.o
-	ld -L./ -melf_i386 -T linker tpm-pcr.o boot.o print_stub.o tpm.o memory_stub.o  -lvboot -o test.elf
+pcr.elf: tpm-pcr.o print_stub.o boot.o memory_stub.o tpm.o util.o
+	ld -L./ -melf_i386 -T linker tpm-pcr.o boot.o print_stub.o tpm.o memory_stub.o util.o -lvboot -o test.elf
 
 custom.o: ../../custom_test.c
 	gcc -g -c -nostdlib -DI_BIN -ffreestanding -m32 \

@@ -23,26 +23,6 @@
 int locality = 0;
 
 
-uint8_t read8(uint32_t addr) {
-   uint8_t volatile *ptr = (uint8_t *) (addr + 0xFED40000);
-   return *ptr;
-}
-
-void write8(uint8_t data, uint32_t addr) {
-   uint8_t volatile *ptr = (uint8_t *) (addr + 0xFED40000);
-   *ptr = data;
-}
-
-uint32_t read32(uint32_t addr) {
-   uint32_t volatile *ptr = (uint32_t *) (addr + 0xFED40000);
-   return *ptr;
-}
-
-void write32(uint32_t data, uint32_t addr) {
-    uint32_t volatile * ptr = (uint32_t *) (addr + 0xFED40000);
-    *ptr = data;
-}
-
 /*
  * Sees if there is data available at a particular locality.
  * Returns 1 if data is available, 0 otherwise.
@@ -164,7 +144,6 @@ uint32_t send(const unsigned char *buf, uint32_t len)
  * Returns: number of bytes received
  */
 int recv_helper(unsigned char *buf, int count)
-{
  
      int size = 0, burstcnt = 0; 
  
@@ -191,7 +170,6 @@ int recv_helper(unsigned char *buf, int count)
      return size;
  }
  
-
 /*
  * Recieve takes a buffer of size count.
  * It receives one command return from the TPM,
@@ -283,7 +261,6 @@ VbError_t VbExTpmSendReceive(const uint8_t* request, uint32_t request_length,
     }
     return 0;
 }
-
 
 /*
  * This function initializes the TPM.
