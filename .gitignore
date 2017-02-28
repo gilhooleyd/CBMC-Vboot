@@ -8,3 +8,6 @@ scripts/newbitmaps/lib/*.pyc
 scripts/newbitmaps/strings/font
 scripts/newbitmaps/strings/*.png
 scripts/newbitmaps/strings/localized_text/*/*.png
+*.o
+*.elf
+tags
