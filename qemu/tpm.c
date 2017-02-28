@@ -2,6 +2,7 @@
 #include "tlcl.h"
 #include "utility.h"
 #include "vboot_api.h"
+#include "util.h"
 
 /* macros to access registers at locality ''l'' */
 #define ACCESS(l)                       (0x0000 | ((l) << 12))
@@ -143,8 +144,7 @@ uint32_t send(const unsigned char *buf, uint32_t len)
  * will return early if the TPM has no data
  * Returns: number of bytes received
  */
-int recv_helper(unsigned char *buf, int count)
- 
+int recv_helper(unsigned char *buf, int count) {
      int size = 0, burstcnt = 0; 
  
      while (is_data_aval(locality)
