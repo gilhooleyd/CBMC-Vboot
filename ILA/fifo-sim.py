@@ -7,11 +7,13 @@ FIFO_FULL      = 2
 FIFO_SENDING   = 3
 FIFO_WORKING   = 4
 
-ADDR = 0xFED40000
+ADDR = 0x0
 STS_ADDR = 0x24 + ADDR
 FIFO_ADDR = 0x18 + ADDR
 BURST_ADDR = 0x1 + ADDR
 
+# TODO rename
+STS_CMD_READY = 0xdead
 # TODO: Find max amount
 FIFO_MAX_AMT = 126
 
@@ -100,6 +102,8 @@ class fifo():
             data_expected = 0x08
 
         self.fifo_sts = data_aval | sts_valid | data_expected
+        # TODO: FIX THIS, I ZEROED IT OUT FOR COMPILE
+        self.fifo_sts = 0
 
         return self.s_dict()
 
