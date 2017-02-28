@@ -57,7 +57,7 @@ def createFifoILA():
                     ila.store(fifoMem, amt, data)]))
 
     # decoding is writing values to data
-    m.decode_exprs = [data == i for i in range(0, 512)]
+    m.decode_exprs = [(data == i) & (amt == a) for i in range(0, 512) for a in range(0,5)]
 
     ast = m.get_next("STS_R", 8)
     m.exportOne(ast, "str_out")
