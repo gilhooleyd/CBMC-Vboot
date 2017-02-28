@@ -1,31 +1,38 @@
-kernel.elf: custom.o boot.o print_stub.o memory_stub.o files.o
-	ld -melf_i386 -T linker custom.o boot.o print_stub.o memory_stub.o files.o vboot_fw.a -o kernel.elf
+CC_OPS     := -g -c -nostdlib -DI_BIN -ffreestanding -m32
+VBOOT_BASE := ../_vboot_reference
+INC_DIRS   := -I $(VBOOT_BASE)/firmware/include/ \
+	-I $(VBOOT_BASE)/firmware/lib/cryptolib/include/ \
+	-I $(VBOOT_BASE)/host/lib/include/ \
+	-I $(VBOOT_BASE)/firmware/lib/include/ 
 
-test.elf: test.o boot.o print_stub.o memory_stub.o  tpm.o
-	ld -L./ -melf_i386 -T linker test.o boot.o print_stub.o tpm.o memory_stub.o  -lvboot -o test.elf
+kernel.elf: custom.o boot.o print_stub.o memory_stub.o files.o
+	ld -melf_i386 -T linker $^ vboot_fw.a -o kernel.elf
+
+test.elf: test.o boot.o print_stub.o memory_stub.o tpm.o util.o
+	ld -L./ -melf_i386 -T linker $^ -lvboot -o test.elf
 #	ld -melf_i386 -T linker test.o boot.o print_stub.o -o test.elf
 
 pcr.elf: tpm-pcr.o print_stub.o boot.o memory_stub.o tpm.o util.o
-	ld -L./ -melf_i386 -T linker tpm-pcr.o boot.o print_stub.o tpm.o memory_stub.o util.o -lvboot -o test.elf
+	ld -L./ -melf_i386 -T linker $^ -lvboot -o test.elf
 
-custom.o: ../../custom_test.c
-	gcc -g -c -nostdlib -DI_BIN -ffreestanding -m32 \
+custom.o: $(VBOOT_BASE)/tests/custom_test.c 
+	gcc $(CC_OPS) \
 		-o custom.o \
-		-I ../../../host/lib/include -I ../../../firmware/include/ -I ../../../firmware/lib/cryptolib/include/ -I ../../../firmware/lib/include/  \
-		../../custom_test.c 
+		$(INC_DIRS) \
+		$(VBOOT_BASE)/tests/custom_test.c 
 
 test.o: test.c
-	gcc -g -c -nostdlib -DI_BIN -ffreestanding -m32 \
+	gcc $(CC_OPS) \
 		-o test.o \
-		-I ../../../host/lib/include -I ../../../firmware/include/ -I ../../../firmware/lib/cryptolib/include/ -I ../../../firmware/lib/include/  \
+		$(INC_DIRS) \
 		test.c
 clean:
 	rm *.o
 	rm *.elf
 
 %.o : %.c
-	gcc -g -c -m32 -std=gnu99 -nostdlib -ffreestanding -Wextra -Wall \
-		-I ../../../host/lib/include -I ../../../firmware/include/ -I ../../../firmware/lib/cryptolib/include/ -I ../../../firmware/lib/include/  \
+	gcc $(CC_OPS) \
+		$(INC_DIRS) \
 		$< -o  $@
 
 %.o : %.S
