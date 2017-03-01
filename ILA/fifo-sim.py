@@ -13,7 +13,7 @@ FIFO_ADDR = 0x18 + ADDR
 BURST_ADDR = 0x1 + ADDR
 
 # TODO: Find max amount
-FIFO_MAX_AMT = 512
+FIFO_MAX_AMT = 126
 
 class fifo():
 

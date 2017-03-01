@@ -1,32 +1,10 @@
 import ila
+from simulate import fifo
 
-
-# this is the simulation of a fifo
-def actualFifo(state):
-    # get variables
-    amt = state["AMT"]
-    fifoMem = state["fifoMem"]
-    data = state["DAT_R"]
-    stat = state["STS_R"]
-
-    # lets say that fifo has a length of 4
-    if (amt < 4):
-        # write data to fifo
-        fifoMem[amt] = data
-        stat = 1
-        amt += 1
-        if (amt == 4):
-            stat = 0
-    # reset fifo if we see this specific value when full
-    elif (data == '0xaa'):
-        amt = 0
-        stat = 1
-
-    state["AMT"] = amt
-    state["fifoMem"] = fifoMem
-    state["DAT_R"] = data
-    state["STS_R"] = stat
-    return state
+ADDR = 0xFED40000
+STS_ADDR = 0x24 + ADDR
+FIFO_ADDR = 0x18 + ADDR
+BURST_ADDR = 0x1 + ADDR
 
 def createFifoILA():
     m = ila.Abstraction("fifo")
@@ -36,31 +14,40 @@ def createFifoILA():
     ONE = m.const(0x1, 8)
 
     # input data register
-    data = m.reg("DAT_R", 8)
+    cmd     = m.inp("cmd", 2)
+    cmdaddr = m.inp("cmdaddr", 8)
+    cmddata = m.inp("cmdaddr", 8)
 
-    # output status register
-    # (for now 1 if can write, 0 otherwise)
-    stat = m.reg("STS_R", 8)
-    m.set_next("STS_R", ila.choice("STS_R_choice", [ZERO, ONE]))
+    # TODO: Status register
 
     # internal index to the FIFO,
     # is amount written so far
-    amt  = m.reg("AMT", 8)
-    m.set_next("AMT", ila.choice("AMT_choice", [amt, amt+1, ZERO]))
+    fifo_in_amt  = m.reg("fifo_in_amt", 8)
+    m.set_next("fifo_in_amt", ila.choice("fifo_in_amt_choice", [fifo_in_amt, fifo_in_amt+1, ZERO]))
+
+    fifo_in_cmdsize = m.reg("fifo_in_cmdsize", 8)
+    m.set_next("fifo_in_cmdsize", ila.choice("fifo_in_cmdsize_choice", [fifo_in_cmdsize, cmddata, 0]))
+
+    # internal index to the FIFO,
+    # TODO base this size off of list of command sizes
+    fifo_out_amt = m.reg("fifo_out_amt", 8)
+
+    m.set_next("fifo_out_amt", ila.choice("fifo_out_amt_choice", [fifo_out_amt, fifo_out_amt-1, ZERO]))
 
     # the fifo memory.
-    # 256 8 bit registers
-    fifoMem = m.mem("fifoMem", 8, 8)
-    m.set_next("fifoMem",
-            ila.choice("fifoMem",
+    # 126 8 bit registers
+    fifo_indata = m.mem("fifo_indata", 8, 6)
+    m.set_next("fifo_indata",
+            ila.choice("fifo_indata",
                 [fifoMem,
-                    ila.store(fifoMem, amt, data)]))
+                    ila.store(fifo_indata, amt, data)]))
 
     # decoding is writing values to data
-    m.decode_exprs = [(data == i) & (amt == a) for i in range(0, 512) for a in range(0,5)]
+    addresses = [STS_ADDR, FIFO_ADDR, BURST_ADDR]
+    m.decode_exprs = [(cmdaddress == a) and (cmd == c) and (fifo_state == s) for a in addresses for c in [0,1,2] for s in range(5)]
 
-    ast = m.get_next("STS_R", 8)
-    m.exportOne(ast, "str_out")
+    ast = m.get_next("fifo_in_amt", 8)
+    m.exportOne(ast, "in_amt.ast")
 
 if __name__ == '__main__':
     # ila.setloglevel(1, "")
