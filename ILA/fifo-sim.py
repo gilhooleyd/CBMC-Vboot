@@ -1,24 +1,22 @@
+NOP = 0
+RD  = 1
+WR  = 2
+FIFO_IDLE = 0
+FIFO_ACCEPTING = 1
+FIFO_FULL      = 2
+FIFO_SENDING   = 3
+FIFO_WORKING   = 4
 
-class fifo(mmiodev):
-    NOP = 0
-    RD  = 1
-    WR  = 2
-    FIFO_IDLE = 0
-    FIFO_ACCEPTING = 1
-    FIFO_FULL      = 2
-    FIFO_SENDING   = 3
-    FIFO_WORKING   = 4
+ADDR = 0xFED40000
+STS_ADDR = 0x24 + ADDR
+FIFO_ADDR = 0x18 + ADDR
+BURST_ADDR = 0x1 + ADDR
 
-    ADDR = 0xFED40000
-    STS_ADDR = 0x24 + ADDR
-    FIFO_ADDR = 0x18 + ADDR
-    BURST_ADDR = 0x1 + ADDR
+# TODO: Find max amount
+FIFO_MAX_AMT = 512
 
-    # TODO: Find max amount
-    FIFO_MAX_AMT = 512
+class fifo():
 
-# The update macro
-# viwyi;€kb'$a' : sel.€kbf.pa,
     def s_dict(self):
         return {
                 'fifo_state' : self.fifo_state,
@@ -30,8 +28,6 @@ class fifo(mmiodev):
                 'fifo_outdata'  : self.fifo_outdata
                 }
 
-# The update macro
-# isel.€kbf.$a = s_in[BBhhhviwy$a'pa']j$^
     def s_update(self, s_in):
         self.fifo_state = s_in['fifo_state']
         self.fifo_sts = s_in['fifo_sts']
@@ -42,9 +38,14 @@ class fifo(mmiodev):
         self.fifo_outdata = s_in['fifo_outdata']
 
     def __init__(self):
-        mmiodev.__init__(self)
-        self.addReg('fifo_sts', ADDR + 0x18, 1, readonly=True)
-        self.addReg('fifo_data', ADDR + 0x24, 1)
+        self.fifo_state = 0
+        self.fifo_sts = 0
+        self.fifo_in_amt = 0
+        self.fifo_in_cmdsize = 0
+        self.fifo_indata = [0] * FIFO_MAX_AMT
+        self.fifo_out_amt = 0
+        self.fifo_outdata = [0] * FIFO_MAX_AMT
+        return
 
     def simulate(self, s_in):
         cmd     = s_in['cmd']
@@ -69,12 +70,19 @@ class fifo(mmiodev):
                 if (cmddata == STS_CMD_READY):
                     self.fifo_state = FIFO_ACCEPTING
                     self.fifo_in_amt = 0
+                    self.fifo_out_amt = 0
+                # TODO: Here's where the magic will happen
                 elif cmddata == STS_GO:
                     self.fifo_state = FIFO_IDLE
                     self.fifo_in_amt = 0
+                    self.fifo_out_amt = 0
             elif cmdaddr == FIFO_ADDR:
                 # If the fifo isn't full update it
                 if self.fifo_state != FIFO_FULL:
+                    # If this is 5th byte its the cmd size byte
+                    if (self.fifo_in_amt == 4):
+                        self.fifo_in_cmdsize = cmddata
+
                     self.fifo_indata[self.fifo_in_amt] = cmddata
                     self.fifo_in_amt += 1
                     # If fifo is full now reflect that
@@ -84,7 +92,34 @@ class fifo(mmiodev):
 
         # Generate the status flags
         data_aval = 0x10 if (self.fifo_out_amt > 0) else 0
-        sts_valid = 0x80 if (self.state != FIFO_WORKING) else 0
-        data_expected = 0x08 if (self.fifo_in_amt < self.fifo_in_cmdsize) else 0
+        sts_valid = 0x80 if (self.fifo_state != FIFO_WORKING) else 0
+
+        data_expected = 0
+        if ((self.fifo_state == FIFO_ACCEPTING) and self.fifo_in_amt < 4) \
+                or (self.fifo_in_amt < self.fifo_in_cmdsize):
+            data_expected = 0x08
+
         self.fifo_sts = data_aval | sts_valid | data_expected
 
+        return self.s_dict()
+
+if __name__ == '__main__':
+    f = fifo()
+    s_in = f.s_dict()
+    s_in['cmd'] = WR
+    s_in['cmdaddr'] = FIFO_ADDR
+    s_in['cmddata'] = 1
+    s_in['fifo_state'] = FIFO_ACCEPTING
+    s_in = f.simulate(s_in)
+#    s_in["fifo_in_amt"] = 4
+#    s_in['cmd'] = WR
+#    s_in['cmdaddr'] = FIFO_ADDR
+#    s_in['cmddata'] = 123
+#    s_in = f.simulate(s_in)
+    print s_in
+    if (s_in['fifo_sts'] & 0x10):
+        print "data available"
+    if (s_in['fifo_sts'] & 0x80):
+        print "data valid"
+    if (s_in['fifo_sts'] & 0x08):
+        print "data expected"
