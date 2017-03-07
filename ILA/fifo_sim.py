@@ -57,6 +57,11 @@ class fifo():
         if cmd == fifo_def.RD:
             if cmdaddr == fifo_def.STS_ADDR:
                 dataout = self.fifo_sts
+            if cmdaddr == BURST_ADDR:
+                if self.fifo_state == FIFO_ACCEPTING:
+                    dataout = FIFO_MAX_AMT - fifo_in_amt
+                if self.fifo_state == FIFO_SENDING:
+                    dataout = self.fifo_out_amt
             # If we are reading the fifo data, then set dataout and decrease amt
             elif cmdaddr == fifo_def.FIFO_ADDR:
                 if self.fifo_out_amt > 0:

@@ -51,6 +51,11 @@ int readBurstCount() {
     int burstcnt;
     burstcnt = read8(STS(locality) + 1);
     burstcnt += read8(STS(locality) + 2) << 8;
+
+    terminal_writestring("Burst Cnt ");
+    printNum(burstcnt);
+    terminal_writestring("\n ");
+
     return burstcnt;
 }
 
@@ -85,6 +90,7 @@ uint32_t send(const unsigned char *buf, uint32_t len)
 {
     int status, burstcnt = 0;
     uint32_t count = 0;
+    terminal_writestring("Sending ");
 
     // request locality
     if (request_locality(locality) == -1)
@@ -151,8 +157,7 @@ int recv_helper(unsigned char *buf, int count) {
              && size < count) {
          // Get the burst count (amount we can read at once)
          if (burstcnt == 0){
-             burstcnt =  read8(STS(locality) + 1);
-             burstcnt += read8(STS(locality) + 2) << 8;
+             burstcnt = readBurstCount();
          }
  
          // if burst count is zero then there is no data to read
@@ -182,6 +187,7 @@ int recv(unsigned char *buf, int count)
  
      if (count < 6)
          return 0;
+    terminal_writestring("Receiving ");
  
      // Check that data is available
      if (!is_data_aval(locality)) {
