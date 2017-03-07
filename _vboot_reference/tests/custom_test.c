@@ -11,7 +11,7 @@
 #include "vboot_struct.h"
 
 #ifdef I_BIN
-#include "cbmc/qemu/tty.h"
+#include "tty.h"
 extern char image_body;
 extern char gbb_bin;
 extern char vblock_bin;

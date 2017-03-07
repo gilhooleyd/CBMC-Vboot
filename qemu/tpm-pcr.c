@@ -13,7 +13,7 @@ int kernel_main(void) {
     int i;
 
     terminal_init();
-    terminal_writestring("hello world\n");
+    terminal_writestring("TPM PCR\n");
     for (i = 0; i < TPM_PCR_DIGEST; i++) {
         in_digest[i] = i;
     }

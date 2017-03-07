@@ -10,15 +10,16 @@ KERNEL_OBJ = custom.o boot.o print_stub.o memory_stub.o files.o
 TEST_OBJ = test.o boot.o print_stub.o memory_stub.o tpm.o util.o
 PCR_OBJ = tpm-pcr.o print_stub.o boot.o memory_stub.o tpm.o util.o
 
-kernel.elf: $(KERNEL_OBJ)
-	ld -melf_i386 -T linker $^ vboot_fw.a -o build/kernel.elf
+vboot_verif: $(KERNEL_OBJ)
+	ld -L./ -melf_i386 -T linker $^ -lvboot_notpm -o build/kernel.elf
+	mv *.o build/
 
-test.elf: $(TEST_OBJ)
-	ld -L./ -melf_i386 -T linker $^ -lvboot -o build/test.elf
-#	ld -melf_i386 -T linker test.o boot.o print_stub.o -o test.elf
+single_cmd: $(TEST_OBJ)
+	ld -L./ -melf_i386 -T linker $^ -lvboot -o build/kernel.elf
+	mv *.o build/
 
-pcr.elf: $(PCR_OBJ)
-	ld -L./ -melf_i386 -T linker $^ -lvboot -o build/test.elf
+pcr: $(PCR_OBJ)
+	ld -L./ -melf_i386 -T linker $^ -lvboot -o build/kernel.elf
 	mv *.o build/
 
 custom.o: $(VBOOT_BASE)/tests/custom_test.c 
@@ -43,3 +44,14 @@ clean:
 
 %.o : %.S
 	as -g --32 $< -o $@
+
+vboot:
+	cd ../_vboot_reference && make clean
+	cd ../_vboot_reference && make fwlib FIRMWARE_ARCH=X86_QEMU
+	cp ../_vboot_reference/build/vboot_fw.a ./libvboot.a
+
+vboot_notpm:
+	cd ../_vboot_reference && make clean
+	cd ../_vboot_reference && make fwlib FIRMWARE_ARCH=X86_QEMU MOCK_TPM=1
+	cp ../_vboot_reference/build/vboot_fw.a ./libvboot_notpm.a
+
