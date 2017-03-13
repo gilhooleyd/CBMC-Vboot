@@ -1,7 +1,7 @@
 
-OUT="/home/vagrant/personal-vboot/images"
+OUT="/home/vagrant/CBMC-Vboot/images"
 # Load chrome scripts
-. "/home/vagrant/personal-vboot/_vboot_reference/scripts/keygeneration/common.sh"
+. "/home/vagrant/CBMC-Vboot/_vboot_reference/scripts/keygeneration/common.sh"
 
 # make data key
 

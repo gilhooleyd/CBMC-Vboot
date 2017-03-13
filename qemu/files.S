@@ -2,12 +2,11 @@
 .data
 .global image_body 
 image_body:
-.INCBIN "/home/vagrant/personal-vboot/images/FWDATA"
+.INCBIN "../images/FWDATA"
 
 .global gbb_bin
 gbb_bin:
-.INCBIN "/home/vagrant/personal-vboot/images/gbb.blob"
+.INCBIN "../images/gbb.blob"
 
-.global vblock_bin
-vblock_bin:
-.INCBIN "/home/vagrant/personal-vboot/images/fwblock.vblock"
+/bin/bash: indent: command not found
+.INCBIN "../images/fwblock.vblock"
