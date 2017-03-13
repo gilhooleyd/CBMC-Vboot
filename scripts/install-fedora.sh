@@ -17,5 +17,5 @@ sudo yum -y install boost--1.61 boost-devel--1.61 boost-jam--1.61
 sudo yum -y install 'boost*'
 
 # Vboot
-sudo yum install -y libyaml-devel lzma-devel lzma glibc-static uuid-devel libuuid-devel xorg-x11-apps xorg-x11-xauth
+sudo yum install -y libyaml-devel lzma-devel lzma glibc-static uuid-devel libuuid-devel xorg-x11-apps xorg-x11-xauth xz-devel
 

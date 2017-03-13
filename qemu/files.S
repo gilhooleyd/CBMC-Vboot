@@ -8,5 +8,6 @@ image_body:
 gbb_bin:
 .INCBIN "../images/gbb.blob"
 
-/bin/bash: indent: command not found
+.global vblock_bin
+vblock_bin:
 .INCBIN "../images/fwblock.vblock"
