@@ -4,3 +4,4 @@
 ./compile/qemu.sh
 ./compile/z3.sh
 ./compile/ila.sh
+./compile/vboot.sh
