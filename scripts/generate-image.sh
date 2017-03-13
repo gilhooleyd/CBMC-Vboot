@@ -22,6 +22,6 @@ vbutil_firmware --vblock "${OUT}/fwblock.vblock"\
     --fv "${OUT}/FWDATA"
 
 vbutil_firmware --verify ${OUT}/fwblock.vblock --fv ${OUT}/FWDATA --signpubkey ${OUT}/root.vbpubk
+
 gbb_utility -c 0x100,0x1064,0x03DE80,0x1064 ${OUT}/gbb.blob
-gbb_utility -s --rootkey     ${OUT}/root.vbprivk ${OUT}/gbb.blob
-gbb_utility -s --recoverykey ${OUT}/root.vbprivk ${OUT}/gbb.blob
+gbb_utility --set --hwid='New Model' -k ${OUT}/root.vbpubk ${OUT}/gbb.blob ${OUT}/gbb.blob

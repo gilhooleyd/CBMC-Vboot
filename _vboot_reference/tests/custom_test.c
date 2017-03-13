@@ -120,8 +120,9 @@ VbError_t VbExHashFirmwareBody(VbCommonParams *cparams, uint32_t fw_index) {
     int body_size;
     void *fw_body;
 #ifndef I_BIN
-    fp = fopen("tests/preamble_tests/data/FWDATA", "r");
+    fp = fopen("/home/vagrant/CBMC-Vboot/images/FWDATA", "r");
     if (fp == NULL) {
+        printf("FWDATA");
         perror("Failed: ");
         return 1;
     }
@@ -154,8 +155,9 @@ int kernel_main(void) {
 
     // read in gbb
 #ifndef I_BIN
-    fp = fopen("tests/preamble_tests/gbb.blob", "r");
+    fp = fopen("/home/vagrant/CBMC-Vboot/images/gbb.blob", "r");
     if (fp == NULL) {
+        printf("gbb.blob");
         perror("Failed: ");
         return 1;
     }
@@ -191,9 +193,9 @@ int kernel_main(void) {
     Memset(&fparams, '\0', sizeof(fparams));
     // read in the whole block of the virtual boot
     // (contains keyblock, preaamble, and RW FW data)
-    fp = fopen("tests/preamble_tests/preamble_v2x/fw_8_8.vblock", "r");
-//    fp = fopen("tests/custom_data/vblock/fw_8_8.vblock", "r");
+    fp = fopen("/home/vagrant/CBMC-Vboot/images/fwblock.vblock", "r");
     if (fp == NULL) {
+        printf("fwblock");
         perror("Failed: ");
         return 1;
     }
