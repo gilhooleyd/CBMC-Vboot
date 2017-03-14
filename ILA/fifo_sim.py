@@ -1,4 +1,5 @@
 import fifo_def
+import hashlib
 
 class fifo():
 
@@ -44,6 +45,48 @@ class fifo():
         self.dataout = 0
         return
 
+    def runCmd(self):
+        print "Run Command"
+        # Only run commands if we are accepting data
+        #  and the in amount is the commandsize
+        if self.fifo_state == fifo_def.FIFO_ACCEPTING:
+            if self.fifo_in_amt == self.fifo_in_cmdsize:
+                # PCR_extend command
+                if self.fifo_indata[6] == 0 and \
+                        self.fifo_indata[7] == 0 and \
+                        self.fifo_indata[8] == 0 and \
+                        self.fifo_indata[9] == 0x14:
+                    CMD_SIZE = 0x1e
+                    print "Going to hash now"
+
+                    # Build the binary string
+                    binaryStr = ""
+                    for i in range(0, 20):
+                        binaryStr += chr(0)
+                    for i in range(14, 14+20):
+                        binaryStr += chr(self.fifo_indata[i])
+
+                    # print hashlib.sha1(binaryStr).hexdigest()
+
+                    # set the output tag
+                    self.fifo_outdata[CMD_SIZE - 1] = 0xc4
+                    # set the output size
+                    self.fifo_outdata[CMD_SIZE - 5] = CMD_SIZE
+                    self.fifo_out_amt    = CMD_SIZE
+                    # set the output data
+                    digest = hashlib.sha1(binaryStr).digest()
+                    for i in range(20):
+                        self.fifo_outdata[CMD_SIZE - 10 - i] = 0 + ord(digest[i])
+                    # fifo should now be in send state
+                    self.fifo_state = fifo_def.FIFO_SENDING
+        else:
+            # TODO: Only do this when no command works
+            # Reset state
+            self.fifo_state = fifo_def.FIFO_IDLE
+            self.fifo_in_amt = 0
+            self.fifo_out_amt = 0
+
+
     def simulate(self, s_in):
         cmd     = s_in['cmd']
         cmdaddr = s_in['cmdaddr']
@@ -53,37 +96,43 @@ class fifo():
         # defaults
         dataout = 0
 
-        # Parse the I/O command from the CPU
+        # All Register Reads
         if cmd == fifo_def.RD:
+            # Status Reg
             if cmdaddr == fifo_def.STS_ADDR:
                 dataout = self.fifo_sts
-            if cmdaddr == BURST_ADDR:
-                if self.fifo_state == FIFO_ACCEPTING:
-                    dataout = FIFO_MAX_AMT - fifo_in_amt
-                if self.fifo_state == FIFO_SENDING:
+            # Burst Reg
+            if cmdaddr == fifo_def.BURST_ADDR:
+                if self.fifo_state == fifo_def.FIFO_ACCEPTING:
+                    dataout = fifo_def.FIFO_MAX_AMT - fifo_in_amt
+                if self.fifo_state == fifo_def.FIFO_SENDING:
                     dataout = self.fifo_out_amt
-            # If we are reading the fifo data, then set dataout and decrease amt
+            # Fifo Reg
             elif cmdaddr == fifo_def.FIFO_ADDR:
+                # If we have data, return it and move index
                 if self.fifo_out_amt > 0:
                     dataout = self.fifo_outdata[self.fifo_out_amt]
                     self.fifo_out_amt -= 1
+        # All Register Writes
         if cmd == fifo_def.WR:
+            # Status Reg
             if cmdaddr == fifo_def.STS_ADDR:
+                # Command is Ready to be sent
                 if (cmddata == fifo_def.STS_COMMAND_READY):
                     self.fifo_state = fifo_def.FIFO_ACCEPTING
                     self.fifo_in_amt = 0
                     self.fifo_out_amt = 0
-                # TODO: Here's where the magic will happen
+                # Tell the TPM to run a command
                 elif cmddata == fifo_def.STS_GO:
-                    self.fifo_state = fifo_def.FIFO_IDLE
-                    self.fifo_in_amt = 0
-                    self.fifo_out_amt = 0
+                    # Run the command
+                    self.runCmd()
+            # Fifo Reg Write
             elif cmdaddr == fifo_def.FIFO_ADDR:
                 # If the fifo isn't full update it
                 if self.fifo_state != fifo_def.FIFO_FULL:
                     print "Updating State"
                     # If this is 5th byte its the cmd size byte
-                    if (self.fifo_in_amt == 4):
+                    if (self.fifo_in_amt == 5):
                         self.fifo_in_cmdsize = cmddata
 
                     self.fifo_indata[self.fifo_in_amt] = cmddata
@@ -108,17 +157,35 @@ class fifo():
 
         return self.s_dict()
 
+pcr_extend_cmd = [0x00, 0xC1, 0x00, 0x00, 0x00, 0x22, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11,
+0x12, 0x13]
+
 if __name__ == '__main__':
     f = fifo()
     s_in = f.s_dict()
+
+    for i in range(len(pcr_extend_cmd)):
+        s_in['cmd'] = fifo_def.WR
+        s_in['cmdaddr'] = fifo_def.FIFO_ADDR
+        s_in['cmddata'] = pcr_extend_cmd[i]
+        s_in['fifo_state'] = fifo_def.FIFO_ACCEPTING
+        s_in = f.simulate(s_in)
+
     s_in['cmd'] = fifo_def.WR
-    s_in['cmdaddr'] = fifo_def.FIFO_ADDR
-    s_in['cmddata'] = 1
-    s_in['fifo_state'] = fifo_def.FIFO_ACCEPTING
-    print s_in
-    if (s_in['fifo_sts'] & fifo_def.STS_DATA_AVAIL):
-        print "data available"
-    if (s_in['fifo_sts'] & fifo_def.STS_VALID):
-        print "data valid"
-    if (s_in['fifo_sts'] & fifo_def.STS_DATA_EXPECT):
-        print "data expected"
+    s_in['cmdaddr'] = fifo_def.STS_ADDR
+    s_in['cmddata'] = fifo_def.STS_GO
+    s_in = f.simulate(s_in)
+
+    for i in range(30):
+        s_in['cmd'] = fifo_def.RD
+        s_in['cmdaddr'] = fifo_def.FIFO_ADDR
+        s_in['cmddata'] = 0
+        s_in = f.simulate(s_in)
+        print "%X" % s_in["dataout"]
+
+#    if (s_in['fifo_sts'] & fifo_def.STS_DATA_AVAIL):
+#        print "data available"
+#    if (s_in['fifo_sts'] & fifo_def.STS_VALID):
+#        print "data valid"
+#    if (s_in['fifo_sts'] & fifo_def.STS_DATA_EXPECT):
+#        print "data expected"
