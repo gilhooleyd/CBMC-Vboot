@@ -4,11 +4,13 @@ INC_DIRS   := -I $(VBOOT_BASE)/firmware/include/ \
 	-I $(VBOOT_BASE)/firmware/lib/cryptolib/include/ \
 	-I $(VBOOT_BASE)/host/lib/include/ \
 	-I $(VBOOT_BASE)/firmware/lib/include/  \
+	-I $(VBOOT_BASE)/firmware/lib/tpm_lite/include/  \
 	-I include/
 
 KERNEL_OBJ = custom.o boot.o print_stub.o memory_stub.o files.o
 TEST_OBJ = test.o boot.o print_stub.o memory_stub.o tpm.o util.o
 PCR_OBJ = tpm-pcr.o print_stub.o boot.o memory_stub.o tpm.o util.o
+BAD_OBJ = tpm-badcmds.o print_stub.o boot.o memory_stub.o tpm.o util.o
 
 vboot_verif: $(KERNEL_OBJ)
 	ld -L./ -melf_i386 -T linker $^ -lvboot_notpm -o build/kernel.elf
@@ -19,6 +21,10 @@ single_cmd: $(TEST_OBJ)
 	mv *.o build/
 
 pcr: $(PCR_OBJ)
+	ld -L./ -melf_i386 -T linker $^ -lvboot -o build/kernel.elf
+	mv *.o build/
+
+badcmds: $(BAD_OBJ)
 	ld -L./ -melf_i386 -T linker $^ -lvboot -o build/kernel.elf
 	mv *.o build/
 
