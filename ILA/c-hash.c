@@ -39,4 +39,20 @@ int main(void) {
         printf("%x\n", out[i]);
     }
 
+    // set the new data
+    for (i = 0; i < 20; i++) {
+        data[i] = out[i];
+    }
+    for (i = 20; i < 40; i++) {
+        data[i] = i - 20;
+    }
+
+    // actually take the SHA1 Hash
+    SHA1(data, 40, out);
+
+    // We can see that the output matches
+    for (i = 0; i < 20; i++) {
+        printf("%x\n", out[i]);
+    }
+
  }

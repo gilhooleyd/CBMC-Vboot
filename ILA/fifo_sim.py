@@ -1,5 +1,5 @@
 import fifo_def
-import hashlib
+from tpm_cmd_pcr import pcr_extend
 
 class fifo():
 
@@ -47,6 +47,7 @@ class fifo():
 
     def runCmd(self):
         print "Run Command"
+        cmd_worked = 0
         # Only run commands if we are accepting data
         #  and the in amount is the commandsize
         if self.fifo_state == fifo_def.FIFO_ACCEPTING:
@@ -56,35 +57,18 @@ class fifo():
                         self.fifo_indata[7] == 0 and \
                         self.fifo_indata[8] == 0 and \
                         self.fifo_indata[9] == 0x14:
-                    CMD_SIZE = 0x1e
-                    print "Going to hash now"
+                    cmd_worked = 1
+                    self.fifo_out_amt, self.fifo_outdata = \
+                        pcr_extend(self.fifo_indata, self.fifo_outdata)
 
-                    # Build the binary string
-                    binaryStr = ""
-                    for i in range(0, 20):
-                        binaryStr += chr(0)
-                    for i in range(14, 14+20):
-                        binaryStr += chr(self.fifo_indata[i])
-
-                    # print hashlib.sha1(binaryStr).hexdigest()
-
-                    # set the output tag
-                    self.fifo_outdata[CMD_SIZE - 1] = 0xc4
-                    # set the output size
-                    self.fifo_outdata[CMD_SIZE - 5] = CMD_SIZE
-                    self.fifo_out_amt    = CMD_SIZE
-                    # set the output data
-                    digest = hashlib.sha1(binaryStr).digest()
-                    for i in range(20):
-                        self.fifo_outdata[CMD_SIZE - 10 - i] = 0 + ord(digest[i])
-                    # fifo should now be in send state
-                    self.fifo_state = fifo_def.FIFO_SENDING
-        else:
-            # TODO: Only do this when no command works
-            # Reset state
+        # Reset state if we had a malformed command
+        if cmd_worked == 0:
             self.fifo_state = fifo_def.FIFO_IDLE
             self.fifo_in_amt = 0
             self.fifo_out_amt = 0
+        # Otherwise change state to sending
+        else:
+            self.fifo_state = fifo_def.FIFO_SENDING
 
 
     def simulate(self, s_in):
@@ -104,7 +88,7 @@ class fifo():
             # Burst Reg
             if cmdaddr == fifo_def.BURST_ADDR:
                 if self.fifo_state == fifo_def.FIFO_ACCEPTING:
-                    dataout = fifo_def.FIFO_MAX_AMT - fifo_in_amt
+                    dataout = fifo_def.FIFO_MAX_AMT - self.fifo_in_amt
                 if self.fifo_state == fifo_def.FIFO_SENDING:
                     dataout = self.fifo_out_amt
             # Fifo Reg
@@ -130,7 +114,6 @@ class fifo():
             elif cmdaddr == fifo_def.FIFO_ADDR:
                 # If the fifo isn't full update it
                 if self.fifo_state != fifo_def.FIFO_FULL:
-                    print "Updating State"
                     # If this is 5th byte its the cmd size byte
                     if (self.fifo_in_amt == 5):
                         self.fifo_in_cmdsize = cmddata
@@ -164,6 +147,7 @@ if __name__ == '__main__':
     f = fifo()
     s_in = f.s_dict()
 
+    # Send the PCR Extend Command
     for i in range(len(pcr_extend_cmd)):
         s_in['cmd'] = fifo_def.WR
         s_in['cmdaddr'] = fifo_def.FIFO_ADDR
@@ -171,11 +155,13 @@ if __name__ == '__main__':
         s_in['fifo_state'] = fifo_def.FIFO_ACCEPTING
         s_in = f.simulate(s_in)
 
+    # Tell the TPM to run Command
     s_in['cmd'] = fifo_def.WR
     s_in['cmdaddr'] = fifo_def.STS_ADDR
     s_in['cmddata'] = fifo_def.STS_GO
     s_in = f.simulate(s_in)
 
+    # Read all of the ouput
     for i in range(30):
         s_in['cmd'] = fifo_def.RD
         s_in['cmdaddr'] = fifo_def.FIFO_ADDR
@@ -183,6 +169,33 @@ if __name__ == '__main__':
         s_in = f.simulate(s_in)
         print "%X" % s_in["dataout"]
 
+    print "Time 2"
+    # Tell the TPM to ready a Command
+    s_in['cmd'] = fifo_def.WR
+    s_in['cmdaddr'] = fifo_def.STS_ADDR
+    s_in['cmddata'] = fifo_def.STS_COMMAND_READY
+    s_in = f.simulate(s_in)
+    # Send the PCR Extend Command
+    for i in range(len(pcr_extend_cmd)):
+        s_in['cmd'] = fifo_def.WR
+        s_in['cmdaddr'] = fifo_def.FIFO_ADDR
+        s_in['cmddata'] = pcr_extend_cmd[i]
+        s_in['fifo_state'] = fifo_def.FIFO_ACCEPTING
+        s_in = f.simulate(s_in)
+
+    # Tell the TPM to run Command
+    s_in['cmd'] = fifo_def.WR
+    s_in['cmdaddr'] = fifo_def.STS_ADDR
+    s_in['cmddata'] = fifo_def.STS_GO
+    s_in = f.simulate(s_in)
+
+    # Read all of the ouput
+    for i in range(30):
+        s_in['cmd'] = fifo_def.RD
+        s_in['cmdaddr'] = fifo_def.FIFO_ADDR
+        s_in['cmddata'] = 0
+        s_in = f.simulate(s_in)
+        print "%X" % s_in["dataout"]
 #    if (s_in['fifo_sts'] & fifo_def.STS_DATA_AVAIL):
 #        print "data available"
 #    if (s_in['fifo_sts'] & fifo_def.STS_VALID):
