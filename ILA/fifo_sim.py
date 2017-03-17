@@ -46,7 +46,6 @@ class fifo():
         return
 
     def runCmd(self):
-        print "Run Command"
         cmd_worked = 0
         # Only run commands if we are accepting data
         #  and the in amount is the commandsize
@@ -100,10 +99,11 @@ class fifo():
                     dataout = self.fifo_out_amt
             # Fifo Reg
             elif cmdaddr == fifo_def.FIFO_ADDR:
-                # If we have data, return it and move index
-                if self.fifo_out_amt > 0:
-                    dataout = self.fifo_outdata[self.fifo_out_amt]
-                    self.fifo_out_amt -= 1
+                if self.fifo_state == fifo_def.FIFO_SENDING:
+                    # If we have data, return it and move index
+                    if self.fifo_out_amt > 0:
+                        dataout = self.fifo_outdata[self.fifo_out_amt]
+                        self.fifo_out_amt -= 1
         # All Register Writes
         if cmd == fifo_def.WR:
             # Status Reg
@@ -145,6 +145,7 @@ class fifo():
 
         self.fifo_sts = data_aval | sts_valid | data_expected
 
+        print self.fifo_out_amt
         return self.s_dict()
 
 pcr_extend_cmd = [0x00, 0xC1, 0x00, 0x00, 0x00, 0x22, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11,

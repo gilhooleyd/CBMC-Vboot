@@ -3,7 +3,7 @@ import fifo_def
 from fifo_sim import fifo
 
 def synth(m, state, sim):
-    print state
+    print "Synthesizing: " + state
     m.synthesize(state, sim)
     ast = m.get_next(state)
     m.exportOne(ast, "ast/" + state + ".ast")
@@ -23,6 +23,7 @@ def createFifoILA():
     # -------------------------------------------------------------
     ZERO = m.const(0x0, 8)
     ONE = m.const(0x1, 8)
+    THIRTY = m.const(0x1e, 8)
 
     # These are the flags that status can output
     STS_VALID           = m.const(fifo_def.STS_VALID, 8)
@@ -70,7 +71,7 @@ def createFifoILA():
     # TODO base this size off of list of command sizes
     fifo_out_amt = m.reg("fifo_out_amt", 8)
     m.set_next("fifo_out_amt", ila.choice("fifo_out_amt_choice",
-        [fifo_out_amt, fifo_out_amt-1, ZERO]))
+        [fifo_out_amt, fifo_out_amt-1, ZERO, THIRTY]))
 
     # The fifo out memory
     # another 256 8 bit registers
@@ -82,19 +83,40 @@ def createFifoILA():
     # this is what is returned by a read or write
     dataout = m.reg("dataout", 8)
     m.set_next("dataout", ila.choice("dataout_choice",
-        [ZERO, fifo_outdata[fifo_out_amt], fifo_sts]))
+        [ZERO, fifo_outdata[fifo_out_amt], fifo_sts, fifo_def.FIFO_MAX_AMT - fifo_in_amt, fifo_out_amt]))
 
     # -------------------------------------------------------------
     # Decode Logic
     # -------------------------------------------------------------
+    # General Information
     addresses = [fifo_def.STS_ADDR, fifo_def.FIFO_ADDR, fifo_def.BURST_ADDR]
     commandData = [fifo_def.STS_COMMAND_READY, fifo_def.STS_GO]
 
-    cmds = [(cmdaddr == fifo_def.STS_ADDR) & (cmd == fifo_def.WR) & (cmddata == d)
-            for d in commandData]
-    general = [(cmdaddr == a) & (cmd == c) & (fifo_state == s)
+    # Commands start and end
+    cmds = [(cmdaddr == fifo_def.STS_ADDR)
+            & (cmd == fifo_def.WR)
+            & (cmddata == d)
+            & (fifo_out_amt == a)
+            for d in commandData for a in range(2)]
+
+    # actual commands
+    pcr_extend = [(cmdaddr == fifo_def.STS_ADDR)
+            & (cmd == fifo_def.WR)
+            & (cmddata == fifo_def.STS_GO)
+            & (fifo_state  == fifo_def.FIFO_ACCEPTING)
+            & (fifo_in_amt  == fifo_in_cmdsize)
+            & (ila.load(fifo_indata, m.const(0x6, 8)) == 0)
+            & (ila.load(fifo_indata, m.const(0x7, 8)) == 0)
+            & (ila.load(fifo_indata, m.const(0x8, 8)) == 0)
+            & (ila.load(fifo_indata, m.const(0x9, 8)) == 0x14)
+            ]
+
+    # General Reading and Writing in every state + Address
+    general = [(cmdaddr == a)
+             & (cmd == c)
+             & (fifo_state == s)
             for a in addresses for c in [0,1,2] for s in range(5)]
-    m.decode_exprs = general + cmds
+    m.decode_exprs = general + cmds + pcr_extend
 
     # -------------------------------------------------------------
     # Synthesize
