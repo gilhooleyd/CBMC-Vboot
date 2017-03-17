@@ -1,5 +1,5 @@
 import fifo_def
-from tpm_cmd_pcr import pcr_extend
+from tpm_cmd_pcr import pcr_extend, pcr_read
 
 class fifo():
 
@@ -60,6 +60,13 @@ class fifo():
                     cmd_worked = 1
                     self.fifo_out_amt, self.fifo_outdata = \
                         pcr_extend(self.fifo_indata, self.fifo_outdata)
+                if self.fifo_indata[6] == 0 and \
+                        self.fifo_indata[7] == 0 and \
+                        self.fifo_indata[8] == 0 and \
+                        self.fifo_indata[9] == 0x15:
+                    cmd_worked = 1
+                    self.fifo_out_amt, self.fifo_outdata = \
+                        pcr_read(self.fifo_indata, self.fifo_outdata)
 
         # Reset state if we had a malformed command
         if cmd_worked == 0:
@@ -143,6 +150,9 @@ class fifo():
 pcr_extend_cmd = [0x00, 0xC1, 0x00, 0x00, 0x00, 0x22, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11,
 0x12, 0x13]
 
+pcr_read_cmd = [0x00, 0xC1, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x00, 0x15, 0x00, 0x00, 0x00, 0x00]
+
+
 if __name__ == '__main__':
     f = fifo()
     s_in = f.s_dict()
@@ -169,7 +179,7 @@ if __name__ == '__main__':
         s_in = f.simulate(s_in)
         print "%X" % s_in["dataout"]
 
-    print "Time 2"
+    print "PCR_Extend 2"
     # Tell the TPM to ready a Command
     s_in['cmd'] = fifo_def.WR
     s_in['cmdaddr'] = fifo_def.STS_ADDR
@@ -189,6 +199,35 @@ if __name__ == '__main__':
     s_in['cmddata'] = fifo_def.STS_GO
     s_in = f.simulate(s_in)
 
+    # Read all of the ouput
+    for i in range(30):
+        s_in['cmd'] = fifo_def.RD
+        s_in['cmdaddr'] = fifo_def.FIFO_ADDR
+        s_in['cmddata'] = 0
+        s_in = f.simulate(s_in)
+        print "%X" % s_in["dataout"]
+
+    #------------------------------------------
+    # PCR_read
+    #------------------------------------------
+    print "PCR_Read"
+    # Tell the TPM to ready a Command
+    s_in['cmd'] = fifo_def.WR
+    s_in['cmdaddr'] = fifo_def.STS_ADDR
+    s_in['cmddata'] = fifo_def.STS_COMMAND_READY
+    s_in = f.simulate(s_in)
+    # Send the PCR Read Command
+    for i in range(len(pcr_read_cmd)):
+        s_in['cmd'] = fifo_def.WR
+        s_in['cmdaddr'] = fifo_def.FIFO_ADDR
+        s_in['cmddata'] = pcr_read_cmd[i]
+        s_in['fifo_state'] = fifo_def.FIFO_ACCEPTING
+        s_in = f.simulate(s_in)
+    # Tell the TPM to run Command
+    s_in['cmd'] = fifo_def.WR
+    s_in['cmdaddr'] = fifo_def.STS_ADDR
+    s_in['cmddata'] = fifo_def.STS_GO
+    s_in = f.simulate(s_in)
     # Read all of the ouput
     for i in range(30):
         s_in['cmd'] = fifo_def.RD
