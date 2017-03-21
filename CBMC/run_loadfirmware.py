@@ -1,11 +1,13 @@
 import os
 
+vboot_dir = "../_vboot_reference/"
+
 includedDirs = [
-        "../../host/lib/include",
-        "../../firmware/include/",
-        "../../firmware/lib/cryptolib/include/",
-        "../../firmware/lib/include/",
-        "../"
+        vboot_dir + "host/lib/include",
+        vboot_dir + "firmware/include/",
+        vboot_dir + "firmware/lib/cryptolib/include/",
+        vboot_dir + "firmware/lib/include/",
+        vboot_dir + "tests"
         ]
 
 testFile = "test_loadfirmware.c"
@@ -14,13 +16,13 @@ includedFiles = [
         # include file below to do Google's unit test assertions
 #        "test_common.c",
 
-        "../../firmware/stub/utility_stub.c",
-        "../../firmware/lib/vboot_common.c",
-        "../../firmware/lib/vboot_nvstorage.c",
-        "../../firmware/lib/vboot_common_init.c",
-        "../../firmware/lib/crc8.c",
-#        "../../firmware/lib/region-fw.c",
-        "../../firmware/lib/vboot_firmware.c"
+        vboot_dir + "firmware/stub/utility_stub.c",
+        vboot_dir + "firmware/lib/vboot_common.c",
+        vboot_dir + "firmware/lib/vboot_nvstorage.c",
+        vboot_dir + "firmware/lib/vboot_common_init.c",
+        vboot_dir + "firmware/lib/crc8.c",
+#        vboot_dir + "firmware/lib/region-fw.c",
+        vboot_dir + "firmware/lib/vboot_firmware.c"
         ]
 
 extras = [
