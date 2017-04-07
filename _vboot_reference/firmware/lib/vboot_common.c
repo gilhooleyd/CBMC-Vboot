@@ -189,7 +189,8 @@ int KeyBlockVerify(const VbKeyBlockHeader *block, uint64_t size,
                    const VbPublicKey *key, int hash_only)
 {
 	const VbSignature *sig;
-
+    uint64_t testSize = size;
+    uint64_t keySize  = block->key_block_size;
 	/* Sanity checks before attempting signature of data */
 	if(size < sizeof(VbKeyBlockHeader)) {
 		VBDEBUG(("Not enough space for key block header.\n"));

@@ -12,6 +12,9 @@
 #include "vboot_struct.h"
 
 int nondet_int ();
+int preambleFailed;
+int preambleHashFailed;
+int fwHashFailed;
 
 /* Mock data */
 static VbCommonParams cparams;
@@ -73,10 +76,13 @@ static void ResetMocks(void) {
       // header_version_major is the return value for KeyBlockVerify
       vblock[i].header_version_major = nondet_int();
       // header_version_major is the return value for VerifyFirmwarePreamble
+      preambleFailed = nondet_int();
       mpreamble[i].header_version_major = nondet_int();
       // sig_offset is the return value for HashFirmwareBody
       mpreamble[i].body_signature.sig_offset = nondet_int();
+      fwHashFailed = nondet_int();
       // sig_size is the return value for VerifyDigest
+      preambleHashFailed = nondet_int();
       mpreamble[i].body_signature.sig_size = nondet_int();
 #else 
       vblock[i].key_block_flags = 0x0F;
@@ -183,7 +189,7 @@ int VerifyFirmwarePreamble(const VbFirmwarePreambleHeader* preamble,
            "  Verify a valid preamble");
 
   /* Mock uses header_version_major to hold return value */
-  return preamble->header_version_major;
+  return preambleFailed;
 }
 
 RSAPublicKey* PublicKeyToRSA(const VbPublicKey* key) {
@@ -229,14 +235,15 @@ VbError_t VbExHashFirmwareBody(VbCommonParams* cparams,
       mpreamble[hash_fw_index].body_signature.data_size - 1024);
   VbUpdateFirmwareBodyHash(cparams, digest_expect_ptr, 1024);
 
+  // TODO: Figure out what is going on here
   /* If signature offset is 42, hash the wrong amount and return success */
-  if (42 == mpreamble[hash_fw_index].body_signature.sig_offset) {
-    VbUpdateFirmwareBodyHash(cparams, digest_expect_ptr, 4);
-    return VBERROR_SUCCESS;
-  }
+//  if (42 == mpreamble[hash_fw_index].body_signature.sig_offset) {
+//    VbUpdateFirmwareBodyHash(cparams, digest_expect_ptr, 4);
+//    return VBERROR_SUCCESS;
+//  }
 
   /* Otherwise, mocked function uses body signature offset as returned value */
-  return mpreamble[hash_fw_index].body_signature.sig_offset;
+  return fwHashFailed;
 }
 
 int VerifyDigest(const uint8_t* digest, const VbSignature *sig,
@@ -246,7 +253,7 @@ int VerifyDigest(const uint8_t* digest, const VbSignature *sig,
   TEST_PTR_EQ(sig, &mpreamble[hash_fw_index].body_signature, "Verifying sig");
 
   /* Mocked function uses sig size as return value for verifying digest */
-  return sig->sig_size;
+  return preambleHashFailed;
 }
 
 /****************************************************************************/
@@ -298,9 +305,9 @@ void checkRollback(uint32_t tpm_prev_version) {
 void checkIncorrectHash() {
     int i = shared->firmware_index;
     __CPROVER_assert(vblock[i].header_version_major == 0, "Key Block failed");
-    __CPROVER_assert(mpreamble[i].header_version_major == 0, "FW Preamble Failed");
-    __CPROVER_assert(mpreamble[i].body_signature.sig_offset == 0, "FW Hashing Failed");
-    __CPROVER_assert(mpreamble[i].body_signature.sig_size == 0, "Verified Hashing Failed");
+    __CPROVER_assert(preambleFailed == 0, "FW Preamble Failed");
+    __CPROVER_assert(fwHashFailed== 0, "FW Hashing Failed");
+    __CPROVER_assert(preambleHashFailed == 0, "Verified Hashing Failed");
 }
 
 int main(void) {
@@ -317,7 +324,7 @@ int main(void) {
 
     if (ret == 0) {
         checkRollback(tpm_fw_version);
-//        checkIncorrectHash();
+        checkIncorrectHash();
     }
 
     return 0;

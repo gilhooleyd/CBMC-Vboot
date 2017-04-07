@@ -30,6 +30,7 @@ class fifo():
                 'fifo_state',
                 'fifo_sts',
                 'fifo_in_amt',
+                'fifo_in_cmdsize',
                 'fifo_indata',
                 'fifo_out_amt',
                 'fifo_outdata',

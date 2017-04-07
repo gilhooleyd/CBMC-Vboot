@@ -125,6 +125,7 @@ def createFifoILA():
     sim = lambda s: f.simulate(s)
     for var in f.all_state:
         synth(m, var, sim)
+    m.generateSim('tpm_sim.cpp')
 
 if __name__ == '__main__':
     # ila.setloglevel(1, "")
