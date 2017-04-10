@@ -2,12 +2,6 @@
 #include <stdio.h>
 #include "tpm.h"
 
-
-// Public functions: fetch, decode, update, ...
-uint32_t update(BIT_VEC cmd, BIT_VEC cmdaddr, BIT_VEC cmddata);
-void tpm_init();
-void printState();
-
 uint32_t pcr_read_cmd[] = {0x00, 0xC1, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x00, 0x15, 0x00, 0x00, 0x00, 0x00}; 
 
 uint8_t pcr_extend_cmd[] = {0x00, 0xC1, 0x00, 0x00, 0x00, 0x22, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13};
@@ -16,18 +10,18 @@ int main(void) {
     int i = 0;
     tpm_init();
 
-    update(WR, STS_ADDR, STS_COMMAND_READY);
-    printState();
+    tpm_update(WR, STS_ADDR, STS_COMMAND_READY);
+    tpm_printState();
     
     for (i = 0; i < sizeof(pcr_extend_cmd); i++) {
-        update(WR, FIFO_ADDR, pcr_extend_cmd[i]);
+        tpm_update(WR, FIFO_ADDR, pcr_extend_cmd[i]);
     }
-    printState();
+    tpm_printState();
 
-    update(WR, STS_ADDR, STS_GO);
+    tpm_update(WR, STS_ADDR, STS_GO);
 
     for (i = 0; i < 30; i++) {
-        printf("0x%x\n", update(RD, FIFO_ADDR, 0));
+        printf("0x%x\n", tpm_update(RD, FIFO_ADDR, 0));
     }
 
 }

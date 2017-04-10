@@ -1,10 +1,7 @@
-#include <stdint.h>
 #include <stdio.h>
-#include <openssl/sha.h>
+#include <stdint.h>
 
 #include "tpm.h"
-
-typedef  uint32_t BIT_VEC;
 
 // State variables.
 uint32_t dataout;
@@ -17,6 +14,8 @@ uint32_t fifo_sts;
 uint8_t fifo_outdata[126];
 uint8_t fifo_indata[126];
 uint8_t pcr_data[20*24];
+
+void tpm_runCmd();
 
 void tpm_init() {
     dataout = 0;
@@ -35,94 +34,8 @@ void tpm_init() {
     }
 }
 
-void pcr_extend() {
-    int CMD_SIZE = 0x1e;
-    int pcr_index = fifo_indata[13];
-    uint8_t extend_data[40];
-    uint8_t *chosen_pcr = &pcr_data[20 * pcr_index];
-    int j;
-
-    // Fill first 20 bytes with old PCR data
-    for (int i = 0; i < 20; i++) {
-        extend_data[i] = chosen_pcr[i];
-    }
-    // Fill next 20 bytes with command data    
-    j = 14;
-    for (int i = 20; i < 40; i++) {
-        extend_data[i] = fifo_indata[j];
-        j += 1;
-    }
-    // Take SHA hash
-    SHA1(extend_data, 40, chosen_pcr);
-
-    // Set the output data
-    // set the output tag
-    fifo_outdata[CMD_SIZE - 1] = 0xc4;
-    // set the output size
-    fifo_outdata[CMD_SIZE - 5] = CMD_SIZE;
-    fifo_out_amt    = CMD_SIZE;
-    // set the output data
-    for (int i = 0; i < 20; i ++)
-        fifo_outdata[CMD_SIZE - 10 - i] = chosen_pcr[i];
-}
-
-void pcr_read() {
-    int CMD_SIZE = 0x1e;
-    int pcr_index = fifo_indata[13];
-    // set the output tag
-    fifo_outdata[CMD_SIZE - 1] = 0xc4;
-    // set the output size
-    fifo_outdata[CMD_SIZE - 5] = CMD_SIZE;
-    fifo_out_amt    = CMD_SIZE;
-    // set the output data
-    for (int i = 0; i < 20; i++) {
-        fifo_outdata[CMD_SIZE - 10 - i] = pcr_data[20 * pcr_index + i];
-    }
-}
-
-void runCmd() {
-        int cmd_worked = 0;
-        printf("Run Command\n");
-        printf("%d %d %d\n", fifo_state, fifo_in_amt, fifo_in_cmdsize);
-        // Only run commands if we are accepting data
-        //  and the in amount is the commandsize
-        if (fifo_state == FIFO_ACCEPTING) {
-                printf("Fifo State\n");
-            if (fifo_in_amt == fifo_in_cmdsize) {
-                printf("Right Size\n");
-                // PCR_extend command
-                if (fifo_indata[6] == 0 &&
-                        fifo_indata[7] == 0 && 
-                        fifo_indata[8] == 0 && 
-                        fifo_indata[9] == 0x14 ) {
-                    cmd_worked = 1;
-                    pcr_extend(fifo_indata, fifo_outdata);
-                    printf("PCR EXTEND\n");
-                }
-                if (fifo_indata[6] == 0 && 
-                        fifo_indata[7] == 0 && 
-                        fifo_indata[8] == 0 && 
-                        fifo_indata[9] == 0x15 ) {
-                    cmd_worked = 1;
-                    pcr_read(fifo_indata, fifo_outdata);
-                }
-            }
-        }
-
-        // Reset state if we had a malformed command
-        if (cmd_worked == 0) {
-            fifo_state = FIFO_IDLE;
-            fifo_in_amt = 0;
-            fifo_out_amt = 0;
-        }
-        // Otherwise change state to sending
-        else {
-            fifo_state = FIFO_SENDING;
-        }
-}
-
 // Public functions: fetch, decode, update, ...
-uint32_t update(uint32_t cmd, uint32_t cmdaddr, uint32_t cmddata) {
+uint32_t tpm_update(uint32_t cmd, uint32_t cmdaddr, uint32_t cmddata) {
     uint32_t data_aval;
     uint32_t sts_valid;
     uint32_t data_expected;
@@ -169,7 +82,7 @@ uint32_t update(uint32_t cmd, uint32_t cmdaddr, uint32_t cmddata) {
             }
             // Run Command
             else if (cmddata == STS_GO) {
-                runCmd();
+                tpm_runCmd();
             }
         }
         // Fifo Reg
@@ -201,7 +114,7 @@ uint32_t update(uint32_t cmd, uint32_t cmdaddr, uint32_t cmddata) {
     return dataout;
 }
 
-void printState() {
+void tpm_printState() {
     int i = 0;
     printf("FIFO_STATE   = %x\n", fifo_state);
     printf("FIFO_IN_AMT  = %x\n", fifo_in_amt);

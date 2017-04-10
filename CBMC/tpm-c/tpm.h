@@ -31,4 +31,11 @@ typedef  uint32_t BIT_VEC;
 #define STS_ADDR 0x24 + ADDR
 #define FIFO_ADDR 0x18 + ADDR
 #define BURST_ADDR 0x1 + ADDR
+
+void tpm_init();
+
+uint32_t tpm_update(BIT_VEC cmd, BIT_VEC cmdaddr, BIT_VEC cmddata);
+
+void tpm_printState();
+
 #endif
