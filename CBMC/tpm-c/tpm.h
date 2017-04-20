@@ -28,8 +28,8 @@ typedef  uint32_t BIT_VEC;
 #define STS_GO 0x20
 #define STS_COMMAND_READY 0x40
 
-#define STS_ADDR 0x24 + ADDR
-#define FIFO_ADDR 0x18 + ADDR
+#define STS_ADDR 0x18 + ADDR
+#define FIFO_ADDR 0x24 + ADDR
 #define BURST_ADDR 0x1 + ADDR
 
 void tpm_init();

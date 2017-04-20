@@ -45,6 +45,7 @@ uint32_t tpm_update(uint32_t cmd, uint32_t cmdaddr, uint32_t cmddata) {
     if (cmd == RD) {
         // Status Reg
         if (cmdaddr == STS_ADDR) {
+            printf("DEBUG: fifo sts %d", fifo_sts);
             dataout = fifo_sts;
         }
         // Burst Reg
