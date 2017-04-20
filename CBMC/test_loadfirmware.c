@@ -19,12 +19,18 @@ int fwHashFailed;
 /* Mock data */
 static VbCommonParams cparams;
 static VbSelectFirmwareParams fparams;
+#ifdef MALLOC
+static VbKeyBlockHeader *vblock;
+static VbFirmwarePreambleHeader *mpreamble;
+#else
 static VbKeyBlockHeader vblock[2];
 static VbFirmwarePreambleHeader mpreamble[2];
+#endif
 static VbNvContext vnc;
 static uint8_t shared_data[VB_SHARED_DATA_MIN_SIZE];
-static VbSharedDataHeader* shared = (VbSharedDataHeader*)shared_data;
 static uint8_t gbb_data[sizeof(GoogleBinaryBlockHeader) + 2048];
+// TODO: malloc these?
+static VbSharedDataHeader* shared = (VbSharedDataHeader*)shared_data;
 static GoogleBinaryBlockHeader* gbb = (GoogleBinaryBlockHeader*)gbb_data;
 static RSAPublicKey data_key;
 static uint32_t digest_size;
@@ -101,6 +107,7 @@ static void ResetMocks(void) {
     PublicKeyInit(&mpreamble[i].kernel_subkey,
                   (uint8_t*)&mpreamble[i].body_signature, 20);
     mpreamble[i].kernel_subkey.algorithm = 7 + i;
+    // TODO: Fix this offset
     mpreamble[i].body_signature.data_size = 20000 + 1000 * i;
   }
 
@@ -310,10 +317,22 @@ void checkIncorrectHash() {
     __CPROVER_assert(preambleHashFailed == 0, "Verified Hashing Failed");
 }
 
+uint32_t malloc_addr = 0x100;
+uint32_t malloc(int size) {
+    uint32_t old = malloc_addr;
+    malloc_addr += size;
+    return old;
+}
+
 int main(void) {
     int ret;
     uint32_t tpm_fw_version;
 
+#ifdef MALLOC
+    vblock = malloc(sizeof(VbKeyBlockHeader)*2);
+    mpreamble = malloc(sizeof(VbFirmwarePreambleHeader)*2);
+#else
+#endif
 //    __CPROVER_assume (mpreamble == 0xffff0000);
 //    __CPROVER_assume (vblock    == 0xfffff000);
 
