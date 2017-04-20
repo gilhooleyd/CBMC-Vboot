@@ -21,9 +21,9 @@ includedFiles = [
         vboot_dir + "firmware/lib/vboot_nvstorage.c",
         vboot_dir + "firmware/lib/vboot_common_init.c",
         vboot_dir + "firmware/lib/crc8.c",
-#        vboot_dir + "firmware/lib/region-fw.c",
         vboot_dir + "firmware/lib/vboot_firmware.c",
         vboot_dir + "firmware/lib/cryptolib/rsa_utility.c",
+# Don't include this or actual RSA algorithms are run
 #        vboot_dir + "firmware/lib/cryptolib/rsa.c",
         vboot_dir + "firmware/lib/utility.c"
         ]

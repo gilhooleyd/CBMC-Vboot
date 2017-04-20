@@ -124,7 +124,9 @@ static void ResetMocks(void) {
 
   gbb_flags = nondet_int();
   // gbb flags shouldn't be set with disable rollback 
+# if !defined(ROLLBACK_REC)
   gbb_flags &= ~GBB_FLAG_DISABLE_FW_ROLLBACK_CHECK;
+#endif
   gbb->flags = gbb_flags;
 #else
   shared->fw_version_tpm = 0x00020004;
@@ -310,11 +312,14 @@ void checkRollback(uint32_t tpm_prev_version) {
 }
 
 void checkIncorrectHash() {
+    __CPROVER_assert(fwHashFailed== 0, "FW Hashing Failed");
+    __CPROVER_assert(preambleHashFailed == 0, "Verified Hashing Failed");
+}
+
+void checkRSA() {
     int i = shared->firmware_index;
     __CPROVER_assert(vblock[i].header_version_major == 0, "Key Block failed");
     __CPROVER_assert(preambleFailed == 0, "FW Preamble Failed");
-    __CPROVER_assert(fwHashFailed== 0, "FW Hashing Failed");
-    __CPROVER_assert(preambleHashFailed == 0, "Verified Hashing Failed");
 }
 
 uint32_t malloc_addr = 0x100;
@@ -333,8 +338,6 @@ int main(void) {
     mpreamble = malloc(sizeof(VbFirmwarePreambleHeader)*2);
 #else
 #endif
-//    __CPROVER_assume (mpreamble == 0xffff0000);
-//    __CPROVER_assume (vblock    == 0xfffff000);
 
     ResetMocks();
     tpm_fw_version = shared->fw_version_tpm;
@@ -342,8 +345,15 @@ int main(void) {
     ret = LoadFirmware(&cparams, &fparams, &vnc);
 
     if (ret == 0) {
+#if defined(ROLLBACK)
         checkRollback(tpm_fw_version);
+#endif
+#if defined(HASH)
         checkIncorrectHash();
+#endif
+#if defined(RSA)
+        checkRSA();
+#endif
     }
 
     return 0;

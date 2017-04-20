@@ -1,4 +1,5 @@
 import os
+import argparse
 
 vboot_dir = "../_vboot_reference/"
 
@@ -26,11 +27,36 @@ includedFiles = [
         ]
 
 extras = [
-#        "--bounds-check",
+        "--unwindset Memcpy.0:1050"
          " -D NONDET_VARS",
          " -D CBMC",
-        "--unwindset Memcpy.0:1050"
         ]
+
+# ------------------------------------------------------------
+# Build the Commandline arguments + test
+# ------------------------------------------------------------
+parser = argparse.ArgumentParser(description='Runs and checks loadFirmware. \n Test arguments are: \nbounds\nrollback\nrollback-rec\nhash\nrsa\ngoogle\n--malloc')
+
+parser.add_argument('testname',  help='Required test name')
+parser.add_argument('--malloc', action='store_true',
+                            help='Enables memory allocator')
+args = parser.parse_args()
+
+
+if (args.testname == 'bounds'):
+    extras.append("--bounds-check")
+if (args.testname == 'rollback'):
+    extras.append("-D ROLLBACK")
+if (args.testname == 'rollback-rec'):
+    extras.append("-D ROLLBACK_REC")
+if (args.testname == 'hash'):
+    extras.append("-D HASH")
+if (args.testname == 'rsa'):
+    extras.append("-D RSA")
+if (args.testname == 'google'):
+    includedFiles.append("test_common.c")
+if (args.malloc):
+    extras.append("-D MALLOC")
 
 # ------------------------------------------------------------
 # Build and Run the command
