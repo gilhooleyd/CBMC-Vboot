@@ -182,7 +182,9 @@ int KeyBlockVerify(const VbKeyBlockHeader* block, uint64_t size,
    */
   TEST_STR_EQ((char *)GetPublicKeyDataC(key), TEST_KEY_DATA,
               "  Verify with root key");
-  TEST_NEQ(block==vblock || block==vblock+1, 0, "  Verify a valid key block");
+  TEST_NEQ(preamble1==preamble2 || preamble1==preamble2+sizeof(VbFirmwarePreambleHeader), 0,
+          "  Verify a valid key block");
+
   
   /* Mock uses header_version_major to hold return value */
   return block->header_version_major;
