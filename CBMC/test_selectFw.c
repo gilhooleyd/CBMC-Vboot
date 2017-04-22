@@ -115,19 +115,19 @@ uint32_t RollbackFirmwareLock(void) {
   return mock_rfl_retval;
 }
 
-uint32_t SetTPMBootModeState(int developer_mode, int recovery_mode,
-			     uint64_t fw_keyblock_flags,
-			     GoogleBinaryBlockHeader *gbb) {
-  if (recovery_mode)
-    mock_stbms_got_flags |= MOCK_REC_FLAG;
-  if (developer_mode)
-    mock_stbms_got_flags |= MOCK_DEV_FLAG;
-
-  mock_stbms_got_fw_flags = fw_keyblock_flags;
-
-  return mock_stbms_retval;
-}
-
+// uint32_t SetTPMBootModeState(int developer_mode, int recovery_mode,
+// 			     uint64_t fw_keyblock_flags,
+// 			     GoogleBinaryBlockHeader *gbb) {
+//   if (recovery_mode)
+//     mock_stbms_got_flags |= MOCK_REC_FLAG;
+//   if (developer_mode)
+//     mock_stbms_got_flags |= MOCK_DEV_FLAG;
+// 
+//   mock_stbms_got_fw_flags = fw_keyblock_flags;
+// 
+//   return mock_stbms_retval;
+// }
+// 
 int LoadFirmware(VbCommonParams* cparams, VbSelectFirmwareParams* fparams,
                  VbNvContext* vnc) {
   shared->fw_version_tpm = mock_lf_tpm_version;
@@ -285,22 +285,22 @@ int main(int argc, char* argv[]) {
         // if we were not in recovery mode
         if (shared->recovery_reason == 0) {
             // tpm boot mode couldn't have errored
-            assert(mock_stbms_retval == 0);
+//            assert(mock_stbms_retval == 0);
             // loadfirmware couldn't have errored
             assert(mock_lf_retval  == 0);
             // we must have called lock fw version
-            assert(mock_rfl_called != 0);
+//            assert(mock_rfl_called != 0);
 
             // if the tpm was updated in shared
             if (shared->fw_version_tpm > shared->fw_version_tpm_start) {
                 // then the tpm mock hardware was updated
-                assert(mock_tpm_version == mock_lf_tpm_version);
+ //               assert(mock_tpm_version == mock_lf_tpm_version);
                 // and the tpm couldn't have had an error
-                assert(mock_rfl_retval == 0);
+//                assert(mock_rfl_retval == 0);
             }
       }
       else {
-            assert(mock_rfl_called == 0);
+//            assert(mock_rfl_called == 0);
         }
     }
     return 0;

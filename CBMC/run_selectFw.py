@@ -3,6 +3,9 @@ import os
 vboot_dir = "../_vboot_reference/"
 
 includedDirs = [
+        "./tpm-c/",
+        vboot_dir + "firmware/lib/tpm_lite/include/",
+
         vboot_dir + "host/lib/include",
         vboot_dir + "firmware/include/",
         vboot_dir + "firmware/lib/cryptolib/include/",
@@ -15,6 +18,12 @@ testFile = "test_selectFw.c"
 includedFiles = [
         # include file below to do Google's unit test assertions
 #        "test_common.c",
+        "./tpm-fw.c",
+        "./tpm-c/tpm_update.c",
+        "./tpm-c/tpm_run_cmd.c",
+        "./tpm-c/tpm_pcr.c",
+        vboot_dir + "firmware/lib/tpm_bootmode.c",
+        vboot_dir + "firmware/lib/tpm_lite/tlcl.c",
 
         vboot_dir + "firmware/stub/utility_stub.c",
         vboot_dir + "firmware/lib/vboot_api_firmware.c",
@@ -28,6 +37,7 @@ includedFiles = [
 
 extras = [
 #        "--bounds-check",
+  "--unwindset send.0:40,send.1:3,send.2:3,send.3:3,recv_helper.0:40,recv_helper.1:2",
          " -D NONDET_VARS",
          " -D CBMC",
         "--unwindset Memcpy.0:1050"
