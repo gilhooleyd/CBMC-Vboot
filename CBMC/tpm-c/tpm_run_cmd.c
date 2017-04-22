@@ -46,11 +46,18 @@ void tpm_runCmd() {
             }
         }
 
-        // Reset state if we had a malformed command
+        // Send malformed command if broken
         if (cmd_worked == 0) {
-            fifo_state = FIFO_IDLE;
+            int CMD_SIZE = 9;
+            fifo_state = FIFO_SENDING;
             fifo_in_amt = 0;
-            fifo_out_amt = 0;
+            // Set the output data
+            // set the output tag
+            fifo_outdata[CMD_SIZE - 1] = 0xc4;
+            // set the output size
+            fifo_outdata[CMD_SIZE - 5] = CMD_SIZE;
+            fifo_outdata[CMD_SIZE - CMD_SIZE] = 0xFF;
+            fifo_out_amt    = CMD_SIZE;
         }
         // Otherwise change state to sending
         else {
