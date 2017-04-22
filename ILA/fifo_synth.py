@@ -99,6 +99,13 @@ def createFifoILA():
             & (fifo_out_amt == a)
             for d in commandData for a in range(2)]
 
+    # Reading the in_cmdsize
+    cmdsize = [(cmdaddr == fifo_def.FIFO_ADDR)
+            & (fifo_state == fifo_def.FIFO_SENDING)
+            & (fifo_in_amt == 5)
+            & (cmd == fifo_def.WR)
+            & (cmddata == d)
+            for d in commandData]
     # actual commands
     pcr_extend = [(cmdaddr == fifo_def.STS_ADDR)
             & (cmd == fifo_def.WR)
@@ -116,7 +123,7 @@ def createFifoILA():
              & (cmd == c)
              & (fifo_state == s)
             for a in addresses for c in [0,1,2] for s in range(5)]
-    m.decode_exprs = general + cmds + pcr_extend
+    m.decode_exprs = general + cmds + pcr_extend + cmdsize
 
     # -------------------------------------------------------------
     # Synthesize
@@ -125,7 +132,8 @@ def createFifoILA():
     sim = lambda s: f.simulate(s)
     for var in f.all_state:
         synth(m, var, sim)
-    m.generateSim('tpm_sim.cpp')
+    m.generateSim('tpm_export.cpp')
+    m.generateCbmcC('tpm_export.c')
 
 if __name__ == '__main__':
     # ila.setloglevel(1, "")

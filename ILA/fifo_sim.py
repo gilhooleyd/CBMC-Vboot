@@ -124,6 +124,7 @@ class fifo():
                 if self.fifo_state != fifo_def.FIFO_FULL:
                     # If this is 5th byte its the cmd size byte
                     if (self.fifo_in_amt == 5):
+                        print "Setting CmdSize"
                         self.fifo_in_cmdsize = cmddata
 
                     self.fifo_indata[self.fifo_in_amt] = cmddata

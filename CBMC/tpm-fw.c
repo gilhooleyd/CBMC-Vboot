@@ -168,7 +168,7 @@ int recv(unsigned char *buf, int count)
      int size = 0;
  
      if (count < 6)
-         return 0;
+         return -1;
 //    terminal_writestring("Receiving ");
  
      // Check that data is available

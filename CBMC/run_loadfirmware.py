@@ -43,7 +43,7 @@ parser.add_argument('--malloc', action='store_true',
 args = parser.parse_args()
 
 
-if (args.testname == 'bounds'):
+if (args.testname == 'array'):
     extras.append("--bounds-check")
 if (args.testname == 'rollback'):
     extras.append("-D ROLLBACK")
