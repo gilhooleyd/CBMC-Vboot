@@ -15,12 +15,15 @@ extern uint8_t fifo_outdata[126];
 extern uint8_t fifo_indata[126];
 extern uint8_t pcr_data[20*24];
 
-void pcr_extend() {
+int pcr_extend() {
     int CMD_SIZE = 0x1e;
     int pcr_index = fifo_indata[13];
     uint8_t extend_data[40];
     uint8_t *chosen_pcr = &pcr_data[20 * pcr_index];
     int j;
+
+    if (pcr_index > 23)
+        return -1;
 
     // Fill first 20 bytes with old PCR data
     for (int i = 0; i < 20; i++) {
@@ -44,11 +47,16 @@ void pcr_extend() {
     // set the output data
     for (int i = 0; i < 20; i ++)
         fifo_outdata[CMD_SIZE - 10 - i] = chosen_pcr[i];
+    return 0;
 }
 
-void pcr_read() {
+int pcr_read() {
     int CMD_SIZE = 0x1e;
     int pcr_index = fifo_indata[13];
+
+    if (pcr_index > 23)
+        return -1;
+
     // set the output tag
     fifo_outdata[CMD_SIZE - 1] = 0xc4;
     // set the output size
@@ -58,4 +66,5 @@ void pcr_read() {
     for (int i = 0; i < 20; i++) {
         fifo_outdata[CMD_SIZE - 10 - i] = pcr_data[20 * pcr_index + i];
     }
+    return 0;
 }

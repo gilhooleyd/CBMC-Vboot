@@ -14,8 +14,8 @@ extern uint8_t fifo_outdata[126];
 extern uint8_t fifo_indata[126];
 extern uint8_t pcr_data[20*24];
 
-void pcr_extend();
-void pcr_read();
+int pcr_extend();
+int pcr_read();
 
 void tpm_runCmd() {
         int cmd_worked = 0;
@@ -32,16 +32,18 @@ void tpm_runCmd() {
                         fifo_indata[7] == 0 && 
                         fifo_indata[8] == 0 && 
                         fifo_indata[9] == 0x14 ) {
-                    cmd_worked = 1;
-                    pcr_extend(fifo_indata, fifo_outdata);
+                    int ret = pcr_extend(fifo_indata, fifo_outdata);
+                    if (ret == 0)
+                        cmd_worked = 1;
                     printf("PCR EXTEND\n");
                 }
                 if (fifo_indata[6] == 0 && 
                         fifo_indata[7] == 0 && 
                         fifo_indata[8] == 0 && 
                         fifo_indata[9] == 0x15 ) {
-                    cmd_worked = 1;
-                    pcr_read();
+                    int ret = pcr_read();
+                    if (ret == 0)
+                        cmd_worked = 1;
                 }
             }
         }
