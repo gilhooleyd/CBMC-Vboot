@@ -1038,8 +1038,6 @@ void update(struct model_fifo* this, BIT_VEC cmd, BIT_VEC cmdaddr, BIT_VEC cmdda
 	bool cVar_990;
 	bool cVar_991;
 	bool cVar_992;
-	BV8 * cVar_987 = ( BV8 * ) malloc( sizeof(BV8) * 256 );
-	BV8 * cVar_993 = ( BV8 * ) malloc( sizeof(BV8) * 256 );
 	cVar_13 = (cmdaddr == 36);
 	cVar_15 = (cmd == 2);
 	cVar_16 = cVar_13 && cVar_15;
@@ -1822,12 +1820,8 @@ void update(struct model_fifo* this, BIT_VEC cmd, BIT_VEC cmdaddr, BIT_VEC cmdda
 	cVar_991 = cVar_254 || cVar_990;
 	cVar_992 = cVar_240 || cVar_991;
 	if (cVar_992) {
-	cVar_993 = ( BV8 * ) malloc( sizeof(BV8) * 256 );
-	array_copy( cVar_993 , ( this-> fifo_indata ) );
-	cVar_993[( this-> fifo_in_amt )] = ( cmddata );
-	cVar_987 = cVar_993;
+	this->fifo_indata[( this-> fifo_in_amt )] = ( cmddata );
 	} else {
-	cVar_987 = ( this-> fifo_indata );
 	}
 	( this-> dataout ) = cVar_11;
 	( this-> fifo_in_amt ) = cVar_783;
@@ -1835,8 +1829,6 @@ void update(struct model_fifo* this, BIT_VEC cmd, BIT_VEC cmdaddr, BIT_VEC cmdda
 	( this-> fifo_out_amt ) = cVar_814;
 	( this-> fifo_state ) = cVar_838;
 	( this-> fifo_sts ) = cVar_911;
-	array_copy( ( this-> fifo_indata ),cVar_987 );
-	free( cVar_987 );
 	return;
 }
 
