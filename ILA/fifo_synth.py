@@ -21,8 +21,11 @@ def createFifoILA():
     # -------------------------------------------------------------
     # Constants
     # -------------------------------------------------------------
-    ZERO = m.const(0x0, 8)
-    ONE = m.const(0x1, 8)
+    ZERO   = m.const(0x0,  8)
+    ONE    = m.const(0x1,  8)
+    TWO    = m.const(0x2,  8)
+    THREE  = m.const(0x3,  8)
+    FOUR   = m.const(0x4,  8)
     THIRTY = m.const(0x1e, 8)
 
     # These are the flags that status can output
@@ -41,7 +44,7 @@ def createFifoILA():
     # Fifo State
     fifo_state = m.reg("fifo_state", 8)
     m.set_next("fifo_state", ila.choice("fifo_state_choice",
-        [ZERO, ONE, ONE+1, ONE+2, ONE+3]))
+        [ZERO, ONE, TWO, THREE, FOUR]))
 
     # Status register
     fifo_sts = m.reg("fifo_sts", 8)
@@ -97,7 +100,8 @@ def createFifoILA():
             & (cmd == fifo_def.WR)
             & (cmddata == d)
             & (fifo_out_amt == a)
-            for d in commandData for a in range(2)]
+            & (fifo_state == s)
+            for d in commandData for a in range(2) for s in range(5)]
 
     # Reading the in_cmdsize
     cmdsize = [(cmdaddr == fifo_def.FIFO_ADDR)
