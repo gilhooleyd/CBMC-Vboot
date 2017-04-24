@@ -39,6 +39,7 @@ includedFiles = [
 extras = [
 #        "--show-loops"
   "--unwindset send.0:40,send.1:3,send.2:3,send.3:3,recv_helper.0:40,recv_helper.1:2",
+         " -D CBMC_TPM_ERROR_TEST",
          " -D CHROMEOS_ENVIRONMENT",
          " -D NONDET_VARS",
          " -D CBMC",

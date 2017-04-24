@@ -101,6 +101,9 @@ static uint32_t TlclSendReceiveNoRetry(const uint8_t* request,
   return result;
 }
 
+#ifdef CBMC_TPM_ERROR_TEST
+    extern int cmd_worked;
+#endif
 
 /* Sends a TPM command and gets a response.  Returns 0 if success or the TPM
  * error code if error. In the firmware, waits for the self test to complete
@@ -133,6 +136,10 @@ uint32_t TlclSendReceive(const uint8_t* request, uint8_t* response,
 #endif
   }
 #endif  /* ! defined(CHROMEOS_ENVIRONMENT) */
+#ifdef CBMC_TPM_ERROR_TEST
+    if (result == TPM_SUCCESS)
+        assert(cmd_worked); 
+#endif
   return result;
 }
 

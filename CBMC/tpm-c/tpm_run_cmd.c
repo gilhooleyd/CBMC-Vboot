@@ -14,11 +14,12 @@ extern uint8_t fifo_outdata[126];
 extern uint8_t fifo_indata[126];
 extern uint8_t pcr_data[20*24];
 
+int cmd_worked = 0;
 int pcr_extend();
 int pcr_read();
 
 void tpm_runCmd() {
-        int cmd_worked = 0;
+        cmd_worked = 0;
         printf("Run Command\n");
         printf("%d %d %d\n", fifo_state, fifo_in_amt, fifo_in_cmdsize);
         // Only run commands if we are accepting data
