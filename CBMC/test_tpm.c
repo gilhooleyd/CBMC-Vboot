@@ -14,7 +14,7 @@ int main(void) {
 	uint8_t outdigest[20];
 
     for (int i = 0; i < 20; i++)
-        indigest[i] = i;
+        indigest[i] = nondet_int();
 
     tpm_init();
     VbExTpmSendReceive(request, req_size, response, resp_len);

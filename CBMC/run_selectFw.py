@@ -44,6 +44,25 @@ extras = [
         ]
 
 # ------------------------------------------------------------
+# Build the Commandline arguments + test
+# ------------------------------------------------------------
+
+parser.add_argument('testname',  help='Required test name')
+parser.add_argument('--malloc', action='store_true',
+                            help='Enables memory allocator')
+args = parser.parse_args()
+
+
+if (args.testname == 'liveness'):
+    extras.append("--bounds-check")
+if (args.testname == 'tpm_lock'):
+    extras.append("-D TPM_LOCK")
+if (args.testname == 'loadfirmware'):
+    extras.append("-D LOAD_FIRMWARE")
+if (args.malloc):
+    extras.append("-D MALLOC")
+
+# ------------------------------------------------------------
 # Build and Run the command
 # ------------------------------------------------------------
 

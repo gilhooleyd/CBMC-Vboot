@@ -43,6 +43,25 @@ extras = [
         ]
 
 # ------------------------------------------------------------
+# Build the Commandline arguments + test
+# ------------------------------------------------------------
+
+parser.add_argument('testname',  help='Required test name')
+parser.add_argument('--malloc', action='store_true',
+                            help='Enables memory allocator')
+args = parser.parse_args()
+
+
+if (args.testname == 'liveness'):
+    extras.append("--bounds-check")
+if (args.testname == 'data_send'):
+    extras.append("-D DATA_SEND")
+if (args.testname == 'data_receive'):
+    extras.append("-D DATA_RECEIVE")
+if (args.malloc):
+    extras.append("-D MALLOC")
+
+# ------------------------------------------------------------
 # Build and Run the command
 # ------------------------------------------------------------
 

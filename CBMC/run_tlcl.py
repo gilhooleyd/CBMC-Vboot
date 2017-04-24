@@ -32,7 +32,6 @@ includedFiles = [
         vboot_dir + "firmware/lib/vboot_nvstorage.c",
         vboot_dir + "firmware/lib/vboot_common_init.c",
         vboot_dir + "firmware/lib/crc8.c",
-#        vboot_dir + "firmware/lib/region-fw.c",
         vboot_dir + "firmware/lib/vboot_firmware.c"
         ]
 
@@ -44,6 +43,31 @@ extras = [
          " -D NONDET_VARS",
          " -D CBMC",
         ]
+
+# ------------------------------------------------------------
+# Build the Commandline arguments + test
+# ------------------------------------------------------------
+
+parser.add_argument('testname',  help='Required test name')
+parser.add_argument('--malloc', action='store_true',
+                            help='Enables memory allocator')
+args = parser.parse_args()
+
+
+if (args.testname == 'array'):
+    extras.append("--bounds-check")
+if (args.testname == 'error_handling'):
+    extras.append("-D ERROR_HANDLING")
+if (args.testname == 'setupTPM'):
+    extras.append("-D SETUP_TPM")
+if (args.testname == 'rollbackfirmwarewrite'):
+    extras.append("-D ROLLBACKFIRMWAREWRITE");
+if (args.testname == 'rollbackfirmwarelock'):
+    extras.append("-D ROLLBACKFIRMWARELOCK")
+if (args.testname == 'settpmbootmodestate'):
+    extras.append("-D SETTPMBOOTMODESTATE")
+if (args.malloc):
+    extras.append("-D MALLOC")
 
 # ------------------------------------------------------------
 # Build and Run the command

@@ -239,8 +239,14 @@ VbError_t VbExTpmSendReceive(const uint8_t* request, uint32_t request_length,
 //        terminal_writestring("Send Failed :(\n");
         return -1;
     } else {
+#ifdef DATA_SEND
         // TPM Fifo in correct state
         assert(fifo_state == FIFO_SENDING);
+        // assert we sent correctly
+        for (int i = 0; i < request_length; i++) {
+            assert(fifo_indata[i] == request[i]);
+        }
+#endif
     }
 
     // get a response from the TPM, check that recv passed
@@ -249,8 +255,10 @@ VbError_t VbExTpmSendReceive(const uint8_t* request, uint32_t request_length,
         return -1;
     }
     else {
+#ifdef DATA_RECEIVE
         // TPM Data receive assertion
         assert(is_data_aval(locality) == 0);
+#endif
     }
     return 0;
 }
